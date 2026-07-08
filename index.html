@@ -196,6 +196,40 @@
   .fx-preset:hover{border-color:var(--accent-dim);color:var(--text);background:#211f2b}
   .reset-btn{font-family:inherit;font-size:10.5px;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:7px;padding:3px 9px;cursor:pointer;transition:all .12s;letter-spacing:.02em}
   .reset-btn:hover{border-color:var(--accent-dim);color:var(--text)}
+  .fs-enter{
+    position:absolute;top:18px;right:18px;z-index:5;
+    width:40px;height:40px;border-radius:11px;
+    background:rgba(20,19,28,.55);border:1px solid var(--line-2);color:var(--text);
+    cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .12s;
+  }
+  .fs-enter:hover{background:rgba(40,38,52,.85);border-color:var(--accent-dim)}
+  .fs-overlay{position:fixed;inset:0;z-index:1000;background:#000;display:none}
+  .fs-overlay.on{display:block}
+  .fs-overlay canvas{width:100%;height:100%;display:block}
+  .fs-exit{
+    position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;
+    width:44px;height:44px;border-radius:50%;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
+    font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .12s;
+  }
+  .fs-exit:hover{background:rgba(255,255,255,.26)}
+  .fs-bar{
+    position:absolute;left:50%;transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 30px);
+    display:flex;gap:14px;
+  }
+  .fs-btn{
+    width:62px;height:62px;border-radius:50%;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+    color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    transition:transform .12s, background .12s;
+  }
+  .fs-btn:hover{background:rgba(255,255,255,.24)}
+  .fs-btn:active{transform:scale(.9)}
+  .fs-btn svg{width:26px;height:26px}
   @media (max-width:900px){
     .app{grid-template-columns:1fr;grid-template-rows:auto auto}
     .panel{border-left:none;border-top:1px solid var(--line)}
@@ -206,6 +240,7 @@
 <body>
 <div class="app">
   <div class="stage">
+    <button id="btnFs" class="fs-enter" title="Pilnekrāns">⛶</button>
     <div class="canvas-wrap" id="cwrap">
       <canvas id="preview"></canvas>
       <div class="handles" id="handles"></div>
@@ -284,8 +319,8 @@
         <input type="range" id="speed" min="0" max="2" step="0.05" value="0.5">
       </div>
       <div class="slider">
-        <div class="top"><span class="name">Kustības izplūdums (motion blur)</span><span class="val" id="mbVal">0%</span></div>
-        <input type="range" id="motionblur" min="0" max="1" step="0.02" value="0">
+        <div class="top"><span class="name">Kustības izplūdums (motion blur)</span><span class="val" id="mbVal">50%</span></div>
+        <input type="range" id="motionblur" min="0" max="1" step="0.02" value="0.5">
       </div>
     </div>
 
@@ -313,6 +348,23 @@
         Statiskam attēlam saglabā PNG, tas darbojas visur. Animētu tapeti pārlūks nevar uzstādīt tieši, jo to liedz operētājsistēma. .webm daudzos telefonos neatveras, tāpēc video tiek saglabāts MP4, ja pārlūks to atbalsta. iPhone: saglabā video, ar lietotni intoLive pārveido par Live Photo, tad liec par tapeti. Android: izmanto video vai GIF tapešu lietotni. GIF ir vieglākais veids, kā vismaz redzēt animāciju galerijā.
       </div>
     </div>
+  </div>
+</div>
+
+<div class="fs-overlay" id="fs">
+  <canvas id="fsCanvas"></canvas>
+  <button class="fs-exit" id="fsExit" title="Aizvērt">✕</button>
+  <div class="fs-bar">
+    <button class="fs-btn" id="fsColors" title="Nejaušas krāsas">
+      <svg viewBox="0 0 24 24"><defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6B6B"/><stop offset="0.5" stop-color="#FFD93D"/><stop offset="1" stop-color="#4D96FF"/></linearGradient></defs><rect x="3" y="3" width="18" height="18" rx="5" fill="url(#fg)"/></svg>
+    </button>
+    <button class="fs-btn" id="fsTheme" title="Nejauša tēma">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    </button>
+    <button class="fs-btn" id="fsLayout" title="Nejaušs izkārtojums">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+    </button>
+    <button class="fs-btn" id="fsMotion" title="Kustība"></button>
   </div>
 </div>
 
@@ -423,9 +475,9 @@ const state = {
   fx:{ brightness:1, contrast:1, saturate:1, temp:0, hue:0,
        posterize:0, bloom:0,
        blur:0, grain:.12, vignette:.18, scanline:0 },
-  animate:false,
+  animate:true,
   animMode:"float",
-  motionblur:0,
+  motionblur:.5,
   speed:.5,
   exportW:1080, exportH:2340
 };
@@ -721,7 +773,11 @@ function sizePreview(){
 }
 
 function drawPreview(){
-  drawFrameMB(pctx,preview.width,preview.height,animT,140);
+  if(fsActive && fsCtx){
+    drawFrameMB(fsCtx,fsCanvas.width,fsCanvas.height,animT,180);
+  }else{
+    drawFrameMB(pctx,preview.width,preview.height,animT,140);
+  }
 }
 
 function scheduleDraw(){needDraw=true;}
@@ -1162,6 +1218,69 @@ function renderFxPresets(){
 }
 document.getElementById("btnResetFx").addEventListener("click",()=>applyFx({}));
 
+// ---------- Fullscreen mode ----------
+const fsEl=document.getElementById("fs");
+const fsCanvas=document.getElementById("fsCanvas");
+let fsCtx=null, fsActive=false;
+function sizeFs(){
+  if(!fsActive)return;
+  const d=Math.min(window.devicePixelRatio||1,2);
+  let cw=Math.round(window.innerWidth*d), ch=Math.round(window.innerHeight*d);
+  const cap=2560, m=Math.max(cw,ch);
+  if(m>cap){const s=cap/m;cw=Math.round(cw*s);ch=Math.round(ch*s);}
+  fsCanvas.width=cw;fsCanvas.height=ch;
+  if(fsCtx) drawScene(fsCtx,cw,ch,animT,180); // seed so motion blur starts full
+  needDraw=true;
+}
+function updateFsMotionIcon(){
+  document.getElementById("fsMotion").innerHTML=state.animate
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>';
+}
+function enterFs(){
+  fsActive=true; fsCtx=fsCanvas.getContext("2d");
+  fsEl.classList.add("on");
+  updateFsMotionIcon(); sizeFs();
+  const r=fsEl.requestFullscreen||fsEl.webkitRequestFullscreen;
+  if(r){ try{ const p=r.call(fsEl); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
+  needDraw=true;
+}
+function exitFs(){
+  fsActive=false; fsEl.classList.remove("on");
+  if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(()=>{}); }
+  else if(document.webkitFullscreenElement && document.webkitExitFullscreen){ try{document.webkitExitFullscreen();}catch(e){} }
+  needDraw=true;
+}
+document.getElementById("btnFs").addEventListener("click",enterFs);
+document.getElementById("fsExit").addEventListener("click",exitFs);
+document.addEventListener("fullscreenchange",()=>{
+  if(!document.fullscreenElement && fsActive){ fsActive=false; fsEl.classList.remove("on"); needDraw=true; }
+});
+window.addEventListener("resize",()=>{ if(fsActive) sizeFs(); });
+
+// Random colour combo from the current preset group
+document.getElementById("fsColors").addEventListener("click",()=>{
+  applyPreset(Math.floor(Math.random()*THEMES[state.theme].length));
+});
+// Random preset group, then a random combo within it
+document.getElementById("fsTheme").addEventListener("click",()=>{
+  const others=THEME_ORDER.filter(k=>k!==state.theme);
+  state.theme=others[Math.floor(Math.random()*others.length)];
+  state.presetIndex=Math.floor(Math.random()*THEMES[state.theme].length);
+  renderThemes();renderPresets();applyPreset(state.presetIndex);
+});
+// Random layout (animated scatter)
+document.getElementById("fsLayout").addEventListener("click",()=>{
+  const targets=state.points.map(()=>({x:.12+Math.random()*.76,y:.12+Math.random()*.76}));
+  scatterTo(targets,nextScatterDuration());
+});
+// Toggle motion
+document.getElementById("fsMotion").addEventListener("click",()=>{
+  state.animate=!state.animate;
+  document.getElementById("animSwitch").classList.toggle("on",state.animate);
+  updateFsMotionIcon(); needDraw=true;
+});
+
 // ---------- Init ----------
 function init(){
   buildPoints(false);
@@ -1169,6 +1288,8 @@ function init(){
   updatePresetLabel();
   applyRes();
   sizePreview();
+  if(state.animate) document.getElementById("animSwitch").classList.add("on");
+  drawScene(pctx,preview.width,preview.height,0,140); // seed so motion blur starts full
   scheduleDraw();
   rafId=requestAnimationFrame(loop);
 }
