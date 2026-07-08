@@ -2,7 +2,11 @@
 <html lang="lv">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e0d14">
 <title>Gradient Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,7 +104,7 @@
     text-transform:uppercase;color:var(--muted-2);margin-bottom:14px;
     display:flex;align-items:center;justify-content:space-between;
   }
-  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
   .seg button{
     font-family:inherit;font-size:14px;font-weight:600;
     background:var(--panel-2);color:var(--muted);
@@ -264,6 +268,7 @@
         <button data-n="3" class="on">3</button>
         <button data-n="4">4</button>
         <button data-n="5">5</button>
+        <button data-n="6">6</button>
       </div>
     </div>
 
@@ -364,7 +369,8 @@
     <button class="fs-btn" id="fsLayout" title="Nejaušs izkārtojums">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
     </button>
-    <button class="fs-btn" id="fsMotion" title="Kustība"></button>
+    <button class="fs-btn" id="fsCount" title="Punktu skaits"></button>
+    <button class="fs-btn" id="fsSpeed" title="Ātrums"></button>
   </div>
 </div>
 
@@ -380,77 +386,113 @@
 // Named palettes (cities/nature/oceans/luxury) support a premium direction.
 const THEMES = {
   spektrs:[
-    {c:["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#C471ED"]},{c:["#6A11CB","#2575FC","#00C9FF","#92FE9D","#FEE140"]},
-    {c:["#F857A6","#FF5858","#FFB199","#FFECD2","#FFD1FF"]},{c:["#12C2E9","#C471ED","#F64F59","#FDBB2D","#2AF598"]},
-    {c:["#08AEEA","#2AF598","#FEE140","#FA709A","#6A11CB"]},{c:["#FC466B","#3F5EFB","#00DBDE","#2AF598","#FEE140"]},
-    {c:["#FF512F","#DD2476","#FF6A88","#FF99AC","#C471ED"]},{c:["#00DBDE","#FC00FF","#833AB4","#2575FC","#00C9FF"]},
-    {c:["#43E97B","#38F9D7","#4FACFE","#667EEA","#764BA2"]},{c:["#F093FB","#F5576C","#FDBB2D","#43E97B","#30CFD0"]}
+    {c:["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#C471ED","#FF9F1C"]},{c:["#6A11CB","#2575FC","#00C9FF","#92FE9D","#FEE140","#FF5E9C"]},
+    {c:["#F857A6","#FF5858","#FFB199","#FFECD2","#FFD1FF","#B983FF"]},{c:["#12C2E9","#C471ED","#F64F59","#FDBB2D","#2AF598","#3F5EFB"]},
+    {c:["#08AEEA","#2AF598","#FEE140","#FA709A","#6A11CB","#00F5D4"]},{c:["#FC466B","#3F5EFB","#00DBDE","#2AF598","#FEE140","#FF7EB3"]},
+    {c:["#FF512F","#DD2476","#FF6A88","#FF99AC","#C471ED","#FFB86C"]},{c:["#00DBDE","#FC00FF","#833AB4","#2575FC","#00C9FF","#43E97B"]},
+    {c:["#43E97B","#38F9D7","#4FACFE","#667EEA","#764BA2","#F093FB"]},{c:["#F093FB","#F5576C","#FDBB2D","#43E97B","#30CFD0","#5B247A"]}
   ],
   pastelis:[
-    {c:["#FFD1DC","#FFE5B4","#FFFACD","#D4F0F0","#E0BBE4"]},{c:["#FBE4E7","#E8DFF5","#D6E5FA","#D0F0EF","#FCF6E5"]},
-    {c:["#FFDEE9","#B5FFFC","#C9FFBF","#FBC7D4","#D9E7FF"]},{c:["#F9E2AE","#FAD4D4","#D6EFC7","#C7CEEA","#E2C2FF"]},
-    {c:["#FFCFDF","#FEFDCA","#E0F9B5","#A5DEE5","#CDB4DB"]},{c:["#F7D9C4","#FAF3DD","#C8D5B9","#8FC0A9","#68B0AB"]},
-    {c:["#FFE0AC","#FFACB7","#A0E7E5","#B4F8C8","#FBE7C6"]},{c:["#E4C1F9","#D0F4DE","#A9DEF9","#FCF6BD","#FF99C8"]},
-    {c:["#FFDAB9","#FFF0F5","#E6E6FA","#F0FFF0","#F5FFFA"]},{c:["#FEC8D8","#D291BC","#957DAD","#E0BBE4","#FFDFD3"]}
+    {c:["#FFD1DC","#FFE5B4","#FFFACD","#D4F0F0","#E0BBE4","#C7CEEA"]},{c:["#FBE4E7","#E8DFF5","#D6E5FA","#D0F0EF","#FCF6E5","#F9D5E5"]},
+    {c:["#FFDEE9","#B5FFFC","#C9FFBF","#FBC7D4","#D9E7FF","#F5D0FE"]},{c:["#F9E2AE","#FAD4D4","#D6EFC7","#C7CEEA","#E2C2FF","#B5EAEA"]},
+    {c:["#FFCFDF","#FEFDCA","#E0F9B5","#A5DEE5","#CDB4DB","#FFDAC1"]},{c:["#F7D9C4","#FAF3DD","#C8D5B9","#8FC0A9","#68B0AB","#D6CFC7"]},
+    {c:["#FFE0AC","#FFACB7","#A0E7E5","#B4F8C8","#FBE7C6","#FFC9DE"]},{c:["#E4C1F9","#D0F4DE","#A9DEF9","#FCF6BD","#FF99C8","#C4FAF8"]},
+    {c:["#FFDAB9","#FFF0F5","#E6E6FA","#F0FFF0","#F5FFFA","#FADADD"]},{c:["#FEC8D8","#D291BC","#957DAD","#E0BBE4","#FFDFD3","#B0A8E0"]}
   ],
   futuristisks:[
-    {c:["#0F0C29","#302B63","#24243E","#00F5D4","#F15BB5"]},{c:["#FF00A0","#00F0FF","#7B2FFF","#0B0B2B","#12F7FF"]},
-    {c:["#08F7FE","#09FBD3","#FE53BB","#F5D300","#0B0B45"]},{c:["#FF2A6D","#05D9E8","#005678","#D1F7FF","#01012B"]},
-    {c:["#3A0CA3","#7209B7","#F72585","#4361EE","#4CC9F0"]},{c:["#00FFA3","#DC1FFF","#03E1FF","#0A0A0F","#5D3FD3"]},
-    {c:["#FF3CAC","#784BA0","#2B86C5","#00C2FF","#0D0221"]},{c:["#39FF14","#00FFFF","#FF00FF","#111133","#1F51FF"]},
-    {c:["#231651","#4DCCBD","#2374AB","#FF8484","#0B032D"]},{c:["#FE00FE","#00E5FF","#FFD300","#1B03A3","#0D0221"]}
+    {c:["#0F0C29","#302B63","#24243E","#00F5D4","#F15BB5","#9B5DE5"]},{c:["#FF00A0","#00F0FF","#7B2FFF","#0B0B2B","#12F7FF","#FEE440"]},
+    {c:["#08F7FE","#09FBD3","#FE53BB","#F5D300","#0B0B45","#7122FA"]},{c:["#FF2A6D","#05D9E8","#005678","#D1F7FF","#01012B","#FF6C11"]},
+    {c:["#3A0CA3","#7209B7","#F72585","#4361EE","#4CC9F0","#B5179E"]},{c:["#00FFA3","#DC1FFF","#03E1FF","#0A0A0F","#5D3FD3","#FF3CAC"]},
+    {c:["#FF3CAC","#784BA0","#2B86C5","#00C2FF","#0D0221","#00F5A0"]},{c:["#39FF14","#00FFFF","#FF00FF","#111133","#1F51FF","#FFFB00"]},
+    {c:["#231651","#4DCCBD","#2374AB","#FF8484","#0B032D","#3DFAFF"]},{c:["#FE00FE","#00E5FF","#FFD300","#1B03A3","#0D0221","#00FFC6"]}
   ],
   pilsetas:[
-    {n:"London",   c:["#2E3944","#566573","#8B3A3A","#B7C4CF","#C9A227"]},
-    {n:"New York", c:["#F2B807","#2C2C34","#5A6068","#6C3483","#E74C3C"]},
-    {n:"Berlin",   c:["#3C3C3C","#D9A404","#2A9D8F","#1B1B1B","#A44A3F"]},
-    {n:"Tokyo",    c:["#FF2D95","#2D2A55","#00E0FF","#F5F5F5","#E63946"]},
-    {n:"Paris",    c:["#EDE3D2","#C08497","#5D6D7E","#C9A227","#7D8471"]},
-    {n:"Reykjavík",c:["#A9D6E5","#2C3E50","#5B8266","#83E8BA","#CAD2C5"]},
-    {n:"Marrakech",c:["#C0562A","#E3A008","#2C528C","#A0522D","#D98880"]},
-    {n:"Miami",    c:["#FF6EC7","#22D3EE","#67E8F9","#FF8C69","#FDB44B"]},
-    {n:"Kyoto",    c:["#6A8D3F","#C1440E","#F4C2C2","#1C1C1C","#C9A227"]},
-    {n:"Rīga",     c:["#D9A404","#5A7A8C","#2F4F3E","#8B3A2F","#EDE6D6"]}
+    {n:"London",   c:["#2E3944","#566573","#8B3A3A","#B7C4CF","#C9A227","#3D5A5B"]},
+    {n:"New York", c:["#F2B807","#2C2C34","#5A6068","#6C3483","#E74C3C","#95A5A6"]},
+    {n:"Berlin",   c:["#3C3C3C","#D9A404","#2A9D8F","#1B1B1B","#A44A3F","#7D8C8D"]},
+    {n:"Tokyo",    c:["#FF2D95","#2D2A55","#00E0FF","#F5F5F5","#E63946","#7B2FFF"]},
+    {n:"Paris",    c:["#EDE3D2","#C08497","#5D6D7E","#C9A227","#7D8471","#A67B8A"]},
+    {n:"Reykjavík",c:["#A9D6E5","#2C3E50","#5B8266","#83E8BA","#CAD2C5","#6D9DC5"]},
+    {n:"Marrakech",c:["#C0562A","#E3A008","#2C528C","#A0522D","#D98880","#8C6A4A"]},
+    {n:"Miami",    c:["#FF6EC7","#22D3EE","#67E8F9","#FF8C69","#FDB44B","#A06CD5"]},
+    {n:"Kyoto",    c:["#6A8D3F","#C1440E","#F4C2C2","#1C1C1C","#C9A227","#8E5B3F"]},
+    {n:"Rīga",     c:["#D9A404","#5A7A8C","#2F4F3E","#8B3A2F","#EDE6D6","#7A6A53"]}
   ],
   daba:[
-    {n:"Mežs",     c:["#1B3A2B","#2D6A4F","#52796F","#74C69D","#B7E4C7"]},
-    {n:"Tuksnesis",c:["#E9C46A","#E76F51","#D4A276","#A0522D","#F4E1C1"]},
-    {n:"Rudens",   c:["#7A2E0E","#BC6C25","#E09F3E","#DDA15E","#606C38"]},
-    {n:"Pļava",    c:["#55A630","#80B918","#AACC00","#BFD200","#D4D700"]},
-    {n:"Vulkāns",  c:["#0B0B0B","#7A0C0C","#C1121F","#F77F00","#FCBF49"]},
-    {n:"Ziemeļblāzma",c:["#011627","#0B3D2E","#21D19F","#2EC4B6","#A0F0CE"]},
-    {n:"Saulriets",c:["#FF6B6B","#F06543","#F79D5C","#FFB4A2","#6D597A"]},
-    {n:"Savanna",  c:["#C2A878","#E3B23C","#A98743","#6B4226","#DDCBA4"]},
-    {n:"Tundra",   c:["#DDE8E8","#A9C0C0","#7A9E9F","#4F6367","#2B3A42"]},
-    {n:"Džungļi",  c:["#14281D","#1E5631","#4C9A2A","#A4DE02","#DFF2A0"]}
+    {n:"Mežs",     c:["#1B3A2B","#2D6A4F","#52796F","#74C69D","#B7E4C7","#40916C"]},
+    {n:"Tuksnesis",c:["#E9C46A","#E76F51","#D4A276","#A0522D","#F4E1C1","#C97C5D"]},
+    {n:"Rudens",   c:["#7A2E0E","#BC6C25","#E09F3E","#DDA15E","#606C38","#9C4A1A"]},
+    {n:"Pļava",    c:["#55A630","#80B918","#AACC00","#BFD200","#D4D700","#2B9348"]},
+    {n:"Vulkāns",  c:["#0B0B0B","#7A0C0C","#C1121F","#F77F00","#FCBF49","#3D0000"]},
+    {n:"Ziemeļblāzma",c:["#011627","#0B3D2E","#21D19F","#2EC4B6","#A0F0CE","#1B998B"]},
+    {n:"Saulriets",c:["#FF6B6B","#F06543","#F79D5C","#FFB4A2","#6D597A","#E56399"]},
+    {n:"Savanna",  c:["#C2A878","#E3B23C","#A98743","#6B4226","#DDCBA4","#8F7042"]},
+    {n:"Tundra",   c:["#DDE8E8","#A9C0C0","#7A9E9F","#4F6367","#2B3A42","#93A7A6"]},
+    {n:"Džungļi",  c:["#14281D","#1E5631","#4C9A2A","#A4DE02","#DFF2A0","#2F7A32"]}
   ],
   okeani:[
-    {n:"Tropu",       c:["#05668D","#028090","#00A896","#02C39A","#F0F3BD"]},
-    {n:"Dzelme",      c:["#03071E","#023E58","#0353A4","#023E7D","#979DAC"]},
-    {n:"Koraļļu rifs",c:["#FF6F61","#FF9E80","#26C6DA","#00ACC1","#FFE082"]},
-    {n:"Arktika",     c:["#CAF0F8","#90E0EF","#48CAE4","#0096C7","#023E8A"]},
-    {n:"Vidusjūra",   c:["#1A759F","#34A0A4","#52B69A","#99D98C","#D9ED92"]},
-    {n:"Lagūna",      c:["#0FA3B1","#B5E2FA","#F9F7F3","#EDDEA4","#F7A072"]},
-    {n:"Vētra",       c:["#1C2541","#3A506B","#5BC0BE","#6FFFE9","#0B132B"]},
-    {n:"Bioluminis.", c:["#011627","#023047","#2EC4B6","#56FFA3","#C0FFEE"]},
-    {n:"Jūras saulriets",c:["#003049","#669BBC","#FDF0D5","#F4A261","#E76F51"]},
-    {n:"Aļģu mežs",   c:["#1B3A2B","#2C6E49","#4C956C","#6A994E","#A3B18A"]}
+    {n:"Tropu",       c:["#05668D","#028090","#00A896","#02C39A","#F0F3BD","#028174"]},
+    {n:"Dzelme",      c:["#03071E","#023E58","#0353A4","#023E7D","#979DAC","#012A4A"]},
+    {n:"Koraļļu rifs",c:["#FF6F61","#FF9E80","#26C6DA","#00ACC1","#FFE082","#FF8A65"]},
+    {n:"Arktika",     c:["#CAF0F8","#90E0EF","#48CAE4","#0096C7","#023E8A","#0077B6"]},
+    {n:"Vidusjūra",   c:["#1A759F","#34A0A4","#52B69A","#99D98C","#D9ED92","#168AAD"]},
+    {n:"Lagūna",      c:["#0FA3B1","#B5E2FA","#F9F7F3","#EDDEA4","#F7A072","#87C6C3"]},
+    {n:"Vētra",       c:["#1C2541","#3A506B","#5BC0BE","#6FFFE9","#0B132B","#2C3E60"]},
+    {n:"Bioluminis.", c:["#011627","#023047","#2EC4B6","#56FFA3","#C0FFEE","#0FB5A0"]},
+    {n:"Jūras saulriets",c:["#003049","#669BBC","#FDF0D5","#F4A261","#E76F51","#C1121F"]},
+    {n:"Aļģu mežs",   c:["#1B3A2B","#2C6E49","#4C956C","#6A994E","#A3B18A","#386641"]}
   ],
   lukss:[
-    {n:"Onikss un zelts",c:["#0A0A0A","#1A1A1A","#8B7500","#D4AF37","#F5E7A0"]},
-    {n:"Karaliskais",    c:["#10002B","#3C096C","#7B2CBF","#C77DFF","#E0AAFF"]},
-    {n:"Smaragds",       c:["#06231A","#0B3B2E","#1E6F5C","#C9A227","#E8D8A0"]},
-    {n:"Šampanietis",    c:["#2B2118","#6B5B45","#B8A07E","#E7D3B3","#F5ECD9"]},
-    {n:"Safīrs",         c:["#04052E","#0B1F5E","#1B4B91","#4A7FE0","#BFD3F2"]},
-    {n:"Rožu nakts",     c:["#1A0B10","#3D1B2A","#7A3B52","#B76E79","#E8C4CB"]},
-    {n:"Bronza",         c:["#1C1108","#3E2A17","#7A5230","#B8860B","#E6C288"]},
-    {n:"Ametists",       c:["#1A1423","#3A2E4D","#6C5B7B","#B8A9C9","#E6E0EB"]},
-    {n:"Pusnakts tirkīzs",c:["#04121A","#08313A","#0E5C63","#2AA198","#A8DADC"]},
-    {n:"Ziloņkauls",     c:["#0B0B0B","#2E2E2E","#6E6E6E","#C9C1B6","#F3EFE7"]}
+    {n:"Onikss un zelts",c:["#0A0A0A","#1A1A1A","#8B7500","#D4AF37","#F5E7A0","#5C4A00"]},
+    {n:"Karaliskais",    c:["#10002B","#3C096C","#7B2CBF","#C77DFF","#E0AAFF","#5A189A"]},
+    {n:"Smaragds",       c:["#06231A","#0B3B2E","#1E6F5C","#C9A227","#E8D8A0","#0A5240"]},
+    {n:"Šampanietis",    c:["#2B2118","#6B5B45","#B8A07E","#E7D3B3","#F5ECD9","#9C8562"]},
+    {n:"Safīrs",         c:["#04052E","#0B1F5E","#1B4B91","#4A7FE0","#BFD3F2","#12347A"]},
+    {n:"Rožu nakts",     c:["#1A0B10","#3D1B2A","#7A3B52","#B76E79","#E8C4CB","#5A2A3C"]},
+    {n:"Bronza",         c:["#1C1108","#3E2A17","#7A5230","#B8860B","#E6C288","#5A3A1E"]},
+    {n:"Ametists",       c:["#1A1423","#3A2E4D","#6C5B7B","#B8A9C9","#E6E0EB","#4E3F63"]},
+    {n:"Pusnakts tirkīzs",c:["#04121A","#08313A","#0E5C63","#2AA198","#A8DADC","#0A4A50"]},
+    {n:"Ziloņkauls",     c:["#0B0B0B","#2E2E2E","#6E6E6E","#C9C1B6","#F3EFE7","#9A928A"]}
+  ],
+  ziedi:[
+    {n:"Roze",       c:["#7A1F3D","#B33951","#E85D75","#F4A6B7","#FBD7E0","#5C1026"]},
+    {n:"Lavanda",    c:["#4B3B6B","#6C5B9E","#9D8DF1","#C3B4F2","#E5DEFA","#3A2E5C"]},
+    {n:"Saulespuķe", c:["#4A2C09","#8A5A0F","#E3A008","#F4C430","#FCE38A","#6B8E23"]},
+    {n:"Sakura",     c:["#5C3A4E","#B76E9A","#F7A8C4","#FBD0DE","#FDEEF2","#8E4B72"]},
+    {n:"Magone",     c:["#3A0A0A","#8B0000","#D7263D","#F44336","#FF8A80","#5C0011"]},
+    {n:"Orhideja",   c:["#3D1E5C","#7B2CBF","#B14AED","#D68CF0","#F0C7FA","#5A1E8A"]},
+    {n:"Tulpe",      c:["#7A1246","#C71F66","#F25F8A","#FF9EB5","#FFD1DC","#9E1B4D"]},
+    {n:"Neļķe",      c:["#6B1F3A","#A83258","#E36588","#F5A3BB","#FCD5DF","#4A1226"]},
+    {n:"Peonija",    c:["#6E2A44","#B24C6A","#E88DA0","#F6BFC9","#FCE4E8","#8A3552"]},
+    {n:"Hortenzija", c:["#2C3E70","#3F5FA8","#6A8FD8","#A7C4F0","#DCE7FA","#243258"]}
+  ],
+  kosmoss:[
+    {n:"Miglājs",    c:["#0B0033","#3D096C","#7B2CBF","#E0348B","#FF6AC2","#12F7FF"]},
+    {n:"Zvaigžņu putekļi",c:["#05010D","#1B0A3D","#4B2E83","#9B5DE5","#F15BB5","#00BBF9"]},
+    {n:"Galaktika",  c:["#03050E","#0A1A4A","#1E3A8A","#5B21B6","#A21CAF","#F0ABFC"]},
+    {n:"Saturns",    c:["#1A120B","#3C2A1E","#7A5C3E","#C9A66B","#E8D5A8","#4A3826"]},
+    {n:"Marss",      c:["#1A0603","#5C1A0B","#A13A1A","#D96C3F","#F0A868","#701F0E"]},
+    {n:"Melnais caurums",c:["#000000","#0A0A1A","#1A1A3A","#3A2A6A","#E8A030","#F5D060"]},
+    {n:"Aurora",     c:["#02010A","#04263B","#0F8B8D","#21F0B6","#A8FFEB","#073B4C"]},
+    {n:"Pulsārs",    c:["#050014","#1E0A55","#3A1DA8","#5D5DFB","#9AB0FF","#D6E0FF"]},
+    {n:"Supernova",  c:["#0A0208","#3D0A3D","#8B1E5A","#F72585","#FF8C42","#FFD60A"]},
+    {n:"Kometa",     c:["#02040F","#0B2545","#13315C","#3E92CC","#A5D8FF","#E8F4FF"]}
+  ],
+  kalni:[
+    {n:"Alpi",       c:["#2B3A42","#3F5765","#6B818C","#A5B8C0","#E8EEF1","#1C2B33"]},
+    {n:"Rīts kalnos",c:["#2A2D43","#4A5568","#8A9BA8","#E4B7A0","#F7D9C4","#C98B6B"]},
+    {n:"Virsotņu saulriets",c:["#2C1A3D","#5C2A5C","#A63A5A","#E8734A","#F2B950","#3D1F4A"]},
+    {n:"Migla",      c:["#3A4A4A","#5C6E6E","#889A9A","#B8C6C6","#E4ECEC","#2A3838"]},
+    {n:"Klintis",    c:["#2E241E","#4E3B2E","#7A5C46","#A88968","#D4BFA3","#3A2C22"]},
+    {n:"Sniega virsotne",c:["#1E2A3A","#3E5470","#6E8CB0","#AEC6E0","#EAF2FA","#152030"]},
+    {n:"Meža nogāze",c:["#14261C","#26432F","#436B4A","#7A9E6B","#C2D6A8","#1B3324"]},
+    {n:"Vulkāniskie",c:["#1A0E0A","#3D1E14","#7A3320","#C0562A","#E3A008","#2A140D"]},
+    {n:"Ziemas kalni",c:["#2A3340","#48566B","#7E90A8","#B8C6D8","#E8EFF5","#1E2530"]},
+    {n:"Kanjons",    c:["#3A140A","#7A2E12","#B3541E","#D98C4A","#F0C088","#5C1F0E"]}
   ]
 };
-const THEME_ORDER=["spektrs","pastelis","futuristisks","pilsetas","daba","okeani","lukss"];
-const THEME_NAMES={spektrs:"Spektrs",pastelis:"Pasteļi",futuristisks:"Futūristisks",pilsetas:"Pilsētas",daba:"Daba",okeani:"Okeāni",lukss:"Lukss"};
+const THEME_ORDER=["spektrs","pastelis","futuristisks","pilsetas","daba","okeani","lukss","ziedi","kosmoss","kalni"];
+const THEME_NAMES={spektrs:"Spektrs",pastelis:"Pasteļi",futuristisks:"Futūristisks",pilsetas:"Pilsētas",daba:"Daba",okeani:"Okeāni",lukss:"Lukss",ziedi:"Ziedi",kosmoss:"Kosmoss",kalni:"Kalni"};
 function currentPalette(){return THEMES[state.theme][state.presetIndex].c.slice(0,state.count);}
 function currentPresetName(){return THEMES[state.theme][state.presetIndex].n||null;}
 function updatePresetLabel(){
@@ -463,7 +505,8 @@ const LAYOUTS = {
   2:[[.28,.24],[.74,.8]],
   3:[[.24,.2],[.8,.34],[.42,.82]],
   4:[[.22,.2],[.8,.24],[.24,.8],[.82,.82]],
-  5:[[.22,.2],[.8,.22],[.5,.5],[.24,.82],[.82,.8]]
+  5:[[.22,.2],[.8,.22],[.5,.5],[.24,.82],[.82,.8]],
+  6:[[.22,.18],[.78,.2],[.2,.52],[.8,.5],[.3,.84],[.78,.84]]
 };
 
 // ---------- State ----------
@@ -946,16 +989,20 @@ function renderEffects(){
 }
 
 // ---------- Count segment ----------
-document.getElementById("countSeg").addEventListener("click",e=>{
-  const b=e.target.closest("button");if(!b)return;
-  document.querySelectorAll("#countSeg button").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on");
-  state.count=parseInt(b.dataset.n);
+function applyCount(n){
+  state.count=n;
   state.presetIndex=0;
   scatter=null;
   buildPoints(false);
   updatePresetLabel();
-  renderPresets();renderSwatches();renderHandles();scheduleDraw();
+  renderPresets();renderSwatches();renderHandles();
+  document.querySelectorAll("#countSeg button").forEach(x=>x.classList.toggle("on",parseInt(x.dataset.n)===n));
+  if(typeof updateDominoIcon==="function") updateDominoIcon();
+  scheduleDraw();
+}
+document.getElementById("countSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  applyCount(parseInt(b.dataset.n));
 });
 
 // ---------- Buttons: shuffle / scatter / reset ----------
@@ -1224,23 +1271,54 @@ const fsCanvas=document.getElementById("fsCanvas");
 let fsCtx=null, fsActive=false;
 function sizeFs(){
   if(!fsActive)return;
+  const cssW=fsCanvas.clientWidth||window.innerWidth, cssH=fsCanvas.clientHeight||window.innerHeight;
   const d=Math.min(window.devicePixelRatio||1,2);
-  let cw=Math.round(window.innerWidth*d), ch=Math.round(window.innerHeight*d);
+  let cw=Math.round(cssW*d), ch=Math.round(cssH*d);
   const cap=2560, m=Math.max(cw,ch);
   if(m>cap){const s=cap/m;cw=Math.round(cw*s);ch=Math.round(ch*s);}
   fsCanvas.width=cw;fsCanvas.height=ch;
   if(fsCtx) drawScene(fsCtx,cw,ch,animT,180); // seed so motion blur starts full
   needDraw=true;
 }
-function updateFsMotionIcon(){
-  document.getElementById("fsMotion").innerHTML=state.animate
-    ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>';
+const SPEED_STEPS=[0,0.5,1,1.5,2.5];
+function speedIcon(level,total){
+  const frac=total>1?level/(total-1):0;
+  const a=(-70+frac*140)*Math.PI/180;
+  const tx=(12+8*Math.sin(a)).toFixed(2), ty=(16-8*Math.cos(a)).toFixed(2);
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+    +'<path d="M4 16 A9 9 0 0 1 20 16"/>'
+    +'<line x1="12" y1="16" x2="'+tx+'" y2="'+ty+'"/>'
+    +'<circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>';
+}
+function currentSpeedLevel(){
+  let best=0,bd=1e9;
+  SPEED_STEPS.forEach((s,i)=>{const d=Math.abs(s-state.speed);if(d<bd){bd=d;best=i;}});
+  return best;
+}
+function updateFsSpeedIcon(){
+  document.getElementById("fsSpeed").innerHTML=speedIcon(currentSpeedLevel(),SPEED_STEPS.length);
+}
+function dominoIcon(n){
+  const pip=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="1.5"/>';
+  const half=(k,yc)=>{
+    if(k<=0) return "";
+    if(k===1) return pip(12,yc);
+    if(k===2) return pip(9,yc-2)+pip(15,yc+2);
+    return pip(9,yc-2)+pip(12,yc)+pip(15,yc+2);
+  };
+  return '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">'
+    +'<rect x="6" y="2" width="12" height="20" rx="3" fill="none" stroke-width="1.6"/>'
+    +'<line x1="6" y1="12" x2="18" y2="12" stroke-width="1.4"/>'
+    +'<g stroke="none">'+half(Math.ceil(n/2),7)+half(Math.floor(n/2),17)+'</g></svg>';
+}
+function updateDominoIcon(){
+  const el=document.getElementById("fsCount");
+  if(el) el.innerHTML=dominoIcon(state.count);
 }
 function enterFs(){
   fsActive=true; fsCtx=fsCanvas.getContext("2d");
   fsEl.classList.add("on");
-  updateFsMotionIcon(); sizeFs();
+  updateFsSpeedIcon(); updateDominoIcon(); sizeFs();
   const r=fsEl.requestFullscreen||fsEl.webkitRequestFullscreen;
   if(r){ try{ const p=r.call(fsEl); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
   needDraw=true;
@@ -1274,11 +1352,20 @@ document.getElementById("fsLayout").addEventListener("click",()=>{
   const targets=state.points.map(()=>({x:.12+Math.random()*.76,y:.12+Math.random()*.76}));
   scatterTo(targets,nextScatterDuration());
 });
-// Toggle motion
-document.getElementById("fsMotion").addEventListener("click",()=>{
-  state.animate=!state.animate;
+// Cycle motion speed (0 stops motion)
+document.getElementById("fsSpeed").addEventListener("click",()=>{
+  const v=SPEED_STEPS[(currentSpeedLevel()+1)%SPEED_STEPS.length];
+  state.speed=v;
+  state.animate=v>0;
+  document.getElementById("speed").value=v;
+  document.getElementById("speedVal").textContent=v.toFixed(2)+"×";
   document.getElementById("animSwitch").classList.toggle("on",state.animate);
-  updateFsMotionIcon(); needDraw=true;
+  updateFsSpeedIcon(); needDraw=true;
+});
+// Cycle point count 2..6
+document.getElementById("fsCount").addEventListener("click",()=>{
+  applyCount(state.count>=6?2:state.count+1);
+  updateDominoIcon();
 });
 
 // ---------- Init ----------
