@@ -208,7 +208,7 @@
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .12s;
   }
   .fs-enter:hover{background:rgba(40,38,52,.85);border-color:var(--accent-dim)}
-  .fs-overlay{position:fixed;inset:0;z-index:1000;background:#000;display:none}
+  .fs-overlay{position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh;z-index:1000;background:#000;display:none}
   .fs-overlay.on{display:block}
   .fs-overlay canvas{width:100%;height:100%;display:block}
   .fs-exit{
@@ -840,6 +840,9 @@ function loop(ts){
     needDraw=true;
     if(k>=1) scatter=null;
   }
+  if(fsActive && needleLineEl && Math.abs(needleTarget-needleCur)>0.05){
+    needleCur+=(needleTarget-needleCur)*0.2; updateNeedle();
+  }
   if(state.animate){animT+=dt*state.speed;needDraw=true;}
   if(needDraw){drawPreview();needDraw=false;}
   positionHandles();
@@ -1281,44 +1284,59 @@ function sizeFs(){
   needDraw=true;
 }
 const SPEED_STEPS=[0,0.5,1,1.5,2.5];
-function speedIcon(level,total){
-  const frac=total>1?level/(total-1):0;
-  const a=(-70+frac*140)*Math.PI/180;
-  const tx=(12+8*Math.sin(a)).toFixed(2), ty=(16-8*Math.cos(a)).toFixed(2);
-  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
-    +'<path d="M4 16 A9 9 0 0 1 20 16"/>'
-    +'<line x1="12" y1="16" x2="'+tx+'" y2="'+ty+'"/>'
-    +'<circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>';
-}
 function currentSpeedLevel(){
   let best=0,bd=1e9;
   SPEED_STEPS.forEach((s,i)=>{const d=Math.abs(s-state.speed);if(d<bd){bd=d;best=i;}});
   return best;
 }
-function updateFsSpeedIcon(){
-  document.getElementById("fsSpeed").innerHTML=speedIcon(currentSpeedLevel(),SPEED_STEPS.length);
+// Speedometer needle (eased in the main loop for a smooth sweep)
+let needleCur=0, needleTarget=0, needleLineEl=null;
+function setNeedleTarget(){
+  const total=SPEED_STEPS.length, frac=total>1?currentSpeedLevel()/(total-1):0;
+  needleTarget=-70+frac*140;
 }
-function dominoIcon(n){
-  const pip=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="1.5"/>';
-  const half=(k,yc)=>{
-    if(k<=0) return "";
-    if(k===1) return pip(12,yc);
-    if(k===2) return pip(9,yc-2)+pip(15,yc+2);
-    return pip(9,yc-2)+pip(12,yc)+pip(15,yc+2);
-  };
-  return '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">'
-    +'<rect x="6" y="2" width="12" height="20" rx="3" fill="none" stroke-width="1.6"/>'
-    +'<line x1="6" y1="12" x2="18" y2="12" stroke-width="1.4"/>'
-    +'<g stroke="none">'+half(Math.ceil(n/2),7)+half(Math.floor(n/2),17)+'</g></svg>';
+function updateNeedle(){
+  if(!needleLineEl)return;
+  const a=needleCur*Math.PI/180;
+  needleLineEl.setAttribute("x2",(12+8*Math.sin(a)).toFixed(2));
+  needleLineEl.setAttribute("y2",(16-8*Math.cos(a)).toFixed(2));
 }
+function updateFsSpeedIcon(){ setNeedleTarget(); }
+// Dice pips fade in/out for a smooth face change
+const DICE_FACES={1:["C"],2:["TL","BR"],3:["TL","C","BR"],4:["TL","TR","BL","BR"],5:["TL","TR","C","BL","BR"],6:["TL","TR","ML","MR","BL","BR"]};
 function updateDominoIcon(){
-  const el=document.getElementById("fsCount");
-  if(el) el.innerHTML=dominoIcon(state.count);
+  const el=document.getElementById("fsCount"); if(!el)return;
+  const active=new Set(DICE_FACES[state.count]||DICE_FACES[6]);
+  el.querySelectorAll(".dpip").forEach(p=>{
+    const on=active.has(p.dataset.k);
+    p.style.opacity=on?"1":"0";
+    p.style.transform=on?"scale(1)":"scale(0.4)";
+  });
+}
+function buildFsIcons(){
+  document.getElementById("fsSpeed").innerHTML=
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+    +'<path d="M4 16 A9 9 0 0 1 20 16"/>'
+    +'<line id="fsNeedle" x1="12" y1="16" x2="12" y2="8"/>'
+    +'<circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>';
+  needleLineEl=document.getElementById("fsNeedle");
+  const P={TL:[9,9],TR:[15,9],ML:[9,12],MR:[15,12],C:[12,12],BL:[9,15],BR:[15,15]};
+  let pips="";
+  for(const k in P){
+    pips+='<circle class="dpip" data-k="'+k+'" cx="'+P[k][0]+'" cy="'+P[k][1]+'" r="1.7"'
+      +' style="transition:opacity .28s ease, transform .28s ease; transform-origin:center; transform-box:fill-box"/>';
+  }
+  document.getElementById("fsCount").innerHTML=
+    '<svg viewBox="0 0 24 24" fill="currentColor">'
+    +'<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    +pips+'</svg>';
+  setNeedleTarget(); needleCur=needleTarget; updateNeedle();
+  updateDominoIcon();
 }
 function enterFs(){
   fsActive=true; fsCtx=fsCanvas.getContext("2d");
   fsEl.classList.add("on");
-  updateFsSpeedIcon(); updateDominoIcon(); sizeFs();
+  buildFsIcons(); sizeFs();
   const r=fsEl.requestFullscreen||fsEl.webkitRequestFullscreen;
   if(r){ try{ const p=r.call(fsEl); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
   needDraw=true;
@@ -1335,6 +1353,8 @@ document.addEventListener("fullscreenchange",()=>{
   if(!document.fullscreenElement && fsActive){ fsActive=false; fsEl.classList.remove("on"); needDraw=true; }
 });
 window.addEventListener("resize",()=>{ if(fsActive) sizeFs(); });
+window.addEventListener("orientationchange",()=>{ if(fsActive) setTimeout(sizeFs,120); });
+if(window.visualViewport){ window.visualViewport.addEventListener("resize",()=>{ if(fsActive) sizeFs(); }); }
 
 // Random colour combo from the current preset group
 document.getElementById("fsColors").addEventListener("click",()=>{
