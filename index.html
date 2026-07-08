@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0d14;
+    --panel:#16151d;
+    --panel-2:#1c1b25;
+    --line:#2a2833;
+    --line-2:#35323f;
+    --text:#ece9f2;
+    --muted:#8d8998;
+    --muted-2:#615d6d;
+    --accent:#a98bff;
+    --accent-dim:#6d5ba8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Space Grotesk",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;
+    min-height:100vh;
+  }
+  .app{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 380px;
+    gap:0;
+    flex:1;
+    min-height:0;
+  }
+  /* Stage */
+  .stage{
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    padding:32px;
+    overflow:hidden;
+    background:
+      radial-gradient(1200px 600px at 30% -10%, rgba(169,139,255,.08), transparent 60%),
+      var(--bg);
+  }
+  .canvas-wrap{
+    position:relative;
+    border-radius:26px;
+    overflow:hidden;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+  }
+  #preview{display:block;background:#000}
+  .handles{position:absolute;inset:0;pointer-events:none}
+  .handle{
+    position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 0 0 2px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.4);
+    cursor:grab;pointer-events:auto;
+    transition:transform .12s ease;
+    touch-action:none;
+  }
+  .handle:active{cursor:grabbing;transform:scale(1.15)}
+  .handle span{
+    position:absolute;bottom:130%;left:50%;transform:translateX(-50%);
+    font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.04em;
+    background:rgba(0,0,0,.7);color:#fff;padding:1px 5px;border-radius:5px;
+    opacity:0;transition:opacity .12s;white-space:nowrap;
+  }
+  .handle:hover span{opacity:1}
+  .stage-meta{
+    position:absolute;left:32px;bottom:24px;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted-2);
+    letter-spacing:.06em;
+  }
+  /* Panel */
+  .panel{
+    background:var(--panel);
+    border-left:1px solid var(--line);
+    overflow-y:auto;
+    padding:22px 22px 60px;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+  .brand h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);align-self:center}
+  .brand small{
+    margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;
+    color:var(--muted-2);letter-spacing:.08em;text-transform:uppercase;
+  }
+  .tagline{color:var(--muted);font-size:12.5px;margin-bottom:20px;line-height:1.4}
+  .group{border-top:1px solid var(--line);padding:18px 0}
+  .group:first-of-type{border-top:none;padding-top:6px}
+  .group > .label{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted-2);margin-bottom:14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .seg button{
+    font-family:inherit;font-size:14px;font-weight:600;
+    background:var(--panel-2);color:var(--muted);
+    border:1px solid var(--line);border-radius:10px;padding:9px 0;cursor:pointer;
+    transition:all .12s;
+  }
+  .seg button:hover{border-color:var(--line-2);color:var(--text)}
+  .seg button.on{background:var(--accent);color:#12101a;border-color:var(--accent)}
+  .presets{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
+  .preset{
+    height:34px;border-radius:9px;cursor:pointer;border:2px solid transparent;
+    transition:transform .1s, border-color .12s;position:relative;
+  }
+  .preset:hover{transform:translateY(-2px)}
+  .preset.on{border-color:#fff}
+  .swatches{display:flex;flex-direction:column;gap:8px}
+  .sw-row{display:flex;align-items:center;gap:10px}
+  .sw-chip{
+    width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.15);
+    position:relative;overflow:hidden;cursor:pointer;flex:none;
+  }
+  .sw-chip input{position:absolute;inset:-6px;width:150%;height:150%;border:none;cursor:pointer;opacity:0}
+  .sw-hex{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);text-transform:uppercase}
+  .sw-i{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted-2);margin-left:auto}
+  .btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{
+    font-family:inherit;font-size:12.5px;font-weight:500;
+    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:9px 12px;cursor:pointer;transition:all .12s;
+    display:inline-flex;align-items:center;gap:6px;flex:1;justify-content:center;
+    white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--accent-dim);background:#211f2b}
+  .btn.primary{background:var(--accent);color:#12101a;border-color:var(--accent);font-weight:600}
+  .btn.primary:hover{background:#b99cff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .slider{margin-bottom:13px}
+  .slider .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .slider .name{font-size:12.5px;color:var(--text)}
+  .slider .val{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;
+    background:var(--line);outline:none;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);border:2px solid var(--panel);box-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:15px;height:15px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);
+  }
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .switch{width:44px;height:24px;border-radius:12px;background:var(--line);position:relative;cursor:pointer;transition:background .15s;flex:none}
+  .switch.on{background:var(--accent)}
+  .switch b{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+  .switch.on b{left:23px}
+  select,input[type=number]{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--panel-2);
+    color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px 9px;width:100%;
+  }
+  .dim-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-top:10px}
+  .dim-row .x{color:var(--muted-2);font-family:"IBM Plex Mono",monospace}
+  .status{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin-top:10px;min-height:15px;line-height:1.4}
+  .hint{font-size:11px;color:var(--muted-2);margin-top:8px;line-height:1.45}
+  .drop{border:1px dashed var(--line-2);border-radius:11px;padding:14px;text-align:center;color:var(--muted);font-size:12.5px;cursor:pointer;transition:all .12s}
+  .drop:hover{border-color:var(--accent-dim);color:var(--text);background:#1a1922}
+  .themes{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .theme-tab{
+    font-family:inherit;font-size:11.5px;font-weight:500;
+    background:var(--panel-2);color:var(--muted);
+    border:1px solid var(--line);border-radius:20px;padding:6px 12px;cursor:pointer;
+    transition:all .12s;
+  }
+  .theme-tab:hover{border-color:var(--line-2);color:var(--text)}
+  .theme-tab.on{background:var(--accent);color:#12101a;border-color:var(--accent);font-weight:600}
+  .sw-block{background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+  .sw-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .mini{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .mini label{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;color:var(--muted-2);width:44px;flex:none;text-transform:uppercase}
+  .mini input[type=range]{height:3px}
+  .mini select{flex:1;padding:5px 6px;font-size:11px;width:auto}
+  .sel-row{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+  .sel-row label{font-size:12.5px;color:var(--text);flex:none}
+  .sel-row select{flex:1}
+  .mini .mv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted);width:34px;text-align:right;flex:none}
+  .fx-head{
+    font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent-dim);margin:14px 0 8px;padding-top:2px;
+  }
+  .fx-head:first-child{margin-top:0}
+  .fx-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+  .fx-preset{font-family:inherit;font-size:11.5px;font-weight:500;background:var(--panel-2);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 0;cursor:pointer;transition:all .12s}
+  .fx-preset:hover{border-color:var(--accent-dim);color:var(--text);background:#211f2b}
+  .reset-btn{font-family:inherit;font-size:10.5px;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:7px;padding:3px 9px;cursor:pointer;transition:all .12s;letter-spacing:.02em}
+  .reset-btn:hover{border-color:var(--accent-dim);color:var(--text)}
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;grid-template-rows:auto auto}
+    .panel{border-left:none;border-top:1px solid var(--line)}
+    .stage{padding:20px;min-height:52vh}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <div class="canvas-wrap" id="cwrap">
+      <canvas id="preview"></canvas>
+      <div class="handles" id="handles"></div>
+    </div>
+    <div class="stage-meta" id="stageMeta">1080 × 2340</div>
+  </div>
+
+  <div class="panel">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Gradient Studio</h1>
+      <small>demo</small>
+    </div>
+    <p class="tagline">Vairākpunktu (mesh) gradienti tapetēm. Velc punktus tieši uz attēla, lai mainītu kompozīciju.</p>
+
+    <!-- COLORS -->
+    <div class="group">
+      <div class="label">Krāsu skaits</div>
+      <div class="seg" id="countSeg">
+        <button data-n="2">2</button>
+        <button data-n="3" class="on">3</button>
+        <button data-n="4">4</button>
+        <button data-n="5">5</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="label"><span>Harmoniskie preseti</span><span id="presetIdx" class="sw-i">01 / 10</span></div>
+      <div class="themes" id="themes"></div>
+      <div class="presets" id="presets"></div>
+      <div class="swatches" id="swatches"></div>
+      <div class="btn-row">
+        <button class="btn" id="btnShuffle">Mainīt secību</button>
+        <button class="btn" id="btnScatter">Nejauši izvietot</button>
+        <button class="btn" id="btnReset">Atiestatīt</button>
+      </div>
+    </div>
+
+    <!-- IMPORT -->
+    <div class="group">
+      <div class="label">Krāsas no attēla</div>
+      <label class="drop" id="drop">
+        Augšupielādē logo vai bildi, lai izvilktu krāsu paleti
+        <input type="file" id="fileInput" accept="image/*" hidden>
+      </label>
+      <div class="hint">Ekstraktē dominējošās krāsas un piešķir tās gradienta punktiem.</div>
+    </div>
+
+    <!-- EFFECTS -->
+    <div class="group">
+      <div class="label"><span>Efekti un filtri</span><button id="btnResetFx" class="reset-btn">Atiestatīt filtrus</button></div>
+      <div class="fx-presets" id="fxPresets"></div>
+      <div id="effects"></div>
+    </div>
+
+    <!-- MOTION -->
+    <div class="group">
+      <div class="label">Animācija</div>
+      <div class="toggle-row">
+        <span class="name" style="font-size:12.5px">Kustīgs priekšskatījums</span>
+        <div class="switch" id="animSwitch"><b></b></div>
+      </div>
+      <div class="sel-row">
+        <label>Efekts</label>
+        <select id="animMode">
+          <option value="float">Peldošs</option>
+          <option value="orbit">Rotācija</option>
+          <option value="pulse">Pulss</option>
+          <option value="wave">Vilnis</option>
+          <option value="drift">Plūsma</option>
+          <option value="swirl">Virpulis</option>
+        </select>
+      </div>
+      <div class="slider">
+        <div class="top"><span class="name">Ātrums</span><span class="val" id="speedVal">0.5×</span></div>
+        <input type="range" id="speed" min="0" max="2" step="0.05" value="0.5">
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="group">
+      <div class="label">Izšķirtspēja un saglabāšana</div>
+      <select id="resSelect"></select>
+      <div class="dim-row" id="customDims" style="display:none">
+        <input type="number" id="customW" value="1080" min="100" max="8000">
+        <span class="x">×</span>
+        <input type="number" id="customH" value="2340" min="100" max="8000">
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btnPng">Saglabāt PNG</button>
+        <button class="btn" id="btnVideo">Ierakstīt video</button>
+        <button class="btn" id="btnGif">Saglabāt GIF</button>
+      </div>
+      <div class="slider" style="margin-top:12px">
+        <div class="top"><span class="name">Video / GIF garums</span><span class="val" id="durVal">5 s</span></div>
+        <input type="range" id="dur" min="2" max="12" step="1" value="5">
+      </div>
+      <div class="status" id="status"></div>
+      <div class="hint" id="wallHelp" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+        <b style="color:var(--muted);font-weight:600">Kā uzstādīt tapeti telefonā</b><br>
+        Statiskam attēlam saglabā PNG, tas darbojas visur. Animētu tapeti pārlūks nevar uzstādīt tieši, jo to liedz operētājsistēma. .webm daudzos telefonos neatveras, tāpēc video tiek saglabāts MP4, ja pārlūks to atbalsta. iPhone: saglabā video, ar lietotni intoLive pārveido par Live Photo, tad liec par tapeti. Android: izmanto video vai GIF tapešu lietotni. GIF ir vieglākais veids, kā vismaz redzēt animāciju galerijā.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Gradient Studio - demo
+   Mesh gradient rendered via inverse-distance weighting on a
+   small buffer, upscaled with smoothing. Filters composited on top.
+   ============================================================ */
+
+// ---------- Curated harmonic palettes, grouped by theme ----------
+// Each palette holds up to 5 colors; for N points the first N are used.
+// Named palettes (cities/nature/oceans/luxury) support a premium direction.
+const THEMES = {
+  spektrs:[
+    {c:["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#C471ED"]},{c:["#6A11CB","#2575FC","#00C9FF","#92FE9D","#FEE140"]},
+    {c:["#F857A6","#FF5858","#FFB199","#FFECD2","#FFD1FF"]},{c:["#12C2E9","#C471ED","#F64F59","#FDBB2D","#2AF598"]},
+    {c:["#08AEEA","#2AF598","#FEE140","#FA709A","#6A11CB"]},{c:["#FC466B","#3F5EFB","#00DBDE","#2AF598","#FEE140"]},
+    {c:["#FF512F","#DD2476","#FF6A88","#FF99AC","#C471ED"]},{c:["#00DBDE","#FC00FF","#833AB4","#2575FC","#00C9FF"]},
+    {c:["#43E97B","#38F9D7","#4FACFE","#667EEA","#764BA2"]},{c:["#F093FB","#F5576C","#FDBB2D","#43E97B","#30CFD0"]}
+  ],
+  pastelis:[
+    {c:["#FFD1DC","#FFE5B4","#FFFACD","#D4F0F0","#E0BBE4"]},{c:["#FBE4E7","#E8DFF5","#D6E5FA","#D0F0EF","#FCF6E5"]},
+    {c:["#FFDEE9","#B5FFFC","#C9FFBF","#FBC7D4","#D9E7FF"]},{c:["#F9E2AE","#FAD4D4","#D6EFC7","#C7CEEA","#E2C2FF"]},
+    {c:["#FFCFDF","#FEFDCA","#E0F9B5","#A5DEE5","#CDB4DB"]},{c:["#F7D9C4","#FAF3DD","#C8D5B9","#8FC0A9","#68B0AB"]},
+    {c:["#FFE0AC","#FFACB7","#A0E7E5","#B4F8C8","#FBE7C6"]},{c:["#E4C1F9","#D0F4DE","#A9DEF9","#FCF6BD","#FF99C8"]},
+    {c:["#FFDAB9","#FFF0F5","#E6E6FA","#F0FFF0","#F5FFFA"]},{c:["#FEC8D8","#D291BC","#957DAD","#E0BBE4","#FFDFD3"]}
+  ],
+  futuristisks:[
+    {c:["#0F0C29","#302B63","#24243E","#00F5D4","#F15BB5"]},{c:["#FF00A0","#00F0FF","#7B2FFF","#0B0B2B","#12F7FF"]},
+    {c:["#08F7FE","#09FBD3","#FE53BB","#F5D300","#0B0B45"]},{c:["#FF2A6D","#05D9E8","#005678","#D1F7FF","#01012B"]},
+    {c:["#3A0CA3","#7209B7","#F72585","#4361EE","#4CC9F0"]},{c:["#00FFA3","#DC1FFF","#03E1FF","#0A0A0F","#5D3FD3"]},
+    {c:["#FF3CAC","#784BA0","#2B86C5","#00C2FF","#0D0221"]},{c:["#39FF14","#00FFFF","#FF00FF","#111133","#1F51FF"]},
+    {c:["#231651","#4DCCBD","#2374AB","#FF8484","#0B032D"]},{c:["#FE00FE","#00E5FF","#FFD300","#1B03A3","#0D0221"]}
+  ],
+  pilsetas:[
+    {n:"London",   c:["#2E3944","#566573","#8B3A3A","#B7C4CF","#C9A227"]},
+    {n:"New York", c:["#F2B807","#2C2C34","#5A6068","#6C3483","#E74C3C"]},
+    {n:"Berlin",   c:["#3C3C3C","#D9A404","#2A9D8F","#1B1B1B","#A44A3F"]},
+    {n:"Tokyo",    c:["#FF2D95","#2D2A55","#00E0FF","#F5F5F5","#E63946"]},
+    {n:"Paris",    c:["#EDE3D2","#C08497","#5D6D7E","#C9A227","#7D8471"]},
+    {n:"Reykjavík",c:["#A9D6E5","#2C3E50","#5B8266","#83E8BA","#CAD2C5"]},
+    {n:"Marrakech",c:["#C0562A","#E3A008","#2C528C","#A0522D","#D98880"]},
+    {n:"Miami",    c:["#FF6EC7","#22D3EE","#67E8F9","#FF8C69","#FDB44B"]},
+    {n:"Kyoto",    c:["#6A8D3F","#C1440E","#F4C2C2","#1C1C1C","#C9A227"]},
+    {n:"Rīga",     c:["#D9A404","#5A7A8C","#2F4F3E","#8B3A2F","#EDE6D6"]}
+  ],
+  daba:[
+    {n:"Mežs",     c:["#1B3A2B","#2D6A4F","#52796F","#74C69D","#B7E4C7"]},
+    {n:"Tuksnesis",c:["#E9C46A","#E76F51","#D4A276","#A0522D","#F4E1C1"]},
+    {n:"Rudens",   c:["#7A2E0E","#BC6C25","#E09F3E","#DDA15E","#606C38"]},
+    {n:"Pļava",    c:["#55A630","#80B918","#AACC00","#BFD200","#D4D700"]},
+    {n:"Vulkāns",  c:["#0B0B0B","#7A0C0C","#C1121F","#F77F00","#FCBF49"]},
+    {n:"Ziemeļblāzma",c:["#011627","#0B3D2E","#21D19F","#2EC4B6","#A0F0CE"]},
+    {n:"Saulriets",c:["#FF6B6B","#F06543","#F79D5C","#FFB4A2","#6D597A"]},
+    {n:"Savanna",  c:["#C2A878","#E3B23C","#A98743","#6B4226","#DDCBA4"]},
+    {n:"Tundra",   c:["#DDE8E8","#A9C0C0","#7A9E9F","#4F6367","#2B3A42"]},
+    {n:"Džungļi",  c:["#14281D","#1E5631","#4C9A2A","#A4DE02","#DFF2A0"]}
+  ],
+  okeani:[
+    {n:"Tropu",       c:["#05668D","#028090","#00A896","#02C39A","#F0F3BD"]},
+    {n:"Dzelme",      c:["#03071E","#023E58","#0353A4","#023E7D","#979DAC"]},
+    {n:"Koraļļu rifs",c:["#FF6F61","#FF9E80","#26C6DA","#00ACC1","#FFE082"]},
+    {n:"Arktika",     c:["#CAF0F8","#90E0EF","#48CAE4","#0096C7","#023E8A"]},
+    {n:"Vidusjūra",   c:["#1A759F","#34A0A4","#52B69A","#99D98C","#D9ED92"]},
+    {n:"Lagūna",      c:["#0FA3B1","#B5E2FA","#F9F7F3","#EDDEA4","#F7A072"]},
+    {n:"Vētra",       c:["#1C2541","#3A506B","#5BC0BE","#6FFFE9","#0B132B"]},
+    {n:"Bioluminis.", c:["#011627","#023047","#2EC4B6","#56FFA3","#C0FFEE"]},
+    {n:"Jūras saulriets",c:["#003049","#669BBC","#FDF0D5","#F4A261","#E76F51"]},
+    {n:"Aļģu mežs",   c:["#1B3A2B","#2C6E49","#4C956C","#6A994E","#A3B18A"]}
+  ],
+  lukss:[
+    {n:"Onikss un zelts",c:["#0A0A0A","#1A1A1A","#8B7500","#D4AF37","#F5E7A0"]},
+    {n:"Karaliskais",    c:["#10002B","#3C096C","#7B2CBF","#C77DFF","#E0AAFF"]},
+    {n:"Smaragds",       c:["#06231A","#0B3B2E","#1E6F5C","#C9A227","#E8D8A0"]},
+    {n:"Šampanietis",    c:["#2B2118","#6B5B45","#B8A07E","#E7D3B3","#F5ECD9"]},
+    {n:"Safīrs",         c:["#04052E","#0B1F5E","#1B4B91","#4A7FE0","#BFD3F2"]},
+    {n:"Rožu nakts",     c:["#1A0B10","#3D1B2A","#7A3B52","#B76E79","#E8C4CB"]},
+    {n:"Bronza",         c:["#1C1108","#3E2A17","#7A5230","#B8860B","#E6C288"]},
+    {n:"Ametists",       c:["#1A1423","#3A2E4D","#6C5B7B","#B8A9C9","#E6E0EB"]},
+    {n:"Pusnakts tirkīzs",c:["#04121A","#08313A","#0E5C63","#2AA198","#A8DADC"]},
+    {n:"Ziloņkauls",     c:["#0B0B0B","#2E2E2E","#6E6E6E","#C9C1B6","#F3EFE7"]}
+  ]
+};
+const THEME_ORDER=["spektrs","pastelis","futuristisks","pilsetas","daba","okeani","lukss"];
+const THEME_NAMES={spektrs:"Spektrs",pastelis:"Pasteļi",futuristisks:"Futūristisks",pilsetas:"Pilsētas",daba:"Daba",okeani:"Okeāni",lukss:"Lukss"};
+function currentPalette(){return THEMES[state.theme][state.presetIndex].c.slice(0,state.count);}
+function currentPresetName(){return THEMES[state.theme][state.presetIndex].n||null;}
+function updatePresetLabel(){
+  const n=currentPresetName();
+  document.getElementById("presetIdx").textContent=(n?n+" · ":"")+String(state.presetIndex+1).padStart(2,"0")+" / 10";
+}
+
+// Default layout of points per count (normalized 0..1)
+const LAYOUTS = {
+  2:[[.28,.24],[.74,.8]],
+  3:[[.24,.2],[.8,.34],[.42,.82]],
+  4:[[.22,.2],[.8,.24],[.24,.8],[.82,.82]],
+  5:[[.22,.2],[.8,.22],[.5,.5],[.24,.82],[.82,.8]]
+};
+
+// ---------- State ----------
+const state = {
+  count:3,
+  theme:"spektrs",
+  presetIndex:0,
+  points:[], // {x,y,color,strength,size,phase,...}
+  fx:{ brightness:1, contrast:1, saturate:1, temp:0, hue:0,
+       posterize:0, bloom:0,
+       blur:0, grain:.12, vignette:.18, scanline:0 },
+  animate:false,
+  animMode:"float",
+  speed:.5,
+  exportW:1080, exportH:2340
+};
+
+const EFFECTS = [
+  {head:"Tonis"},
+  {key:"brightness",name:"Spilgtums",       min:.6,  max:1.5, step:.02, fmt:v=>v.toFixed(2)+"×"},
+  {key:"contrast",  name:"Kontrasts",       min:.6,  max:1.6, step:.02, fmt:v=>v.toFixed(2)+"×"},
+  {key:"saturate",  name:"Piesātinājums",   min:0,   max:2,   step:.05, fmt:v=>v.toFixed(2)+"×"},
+  {key:"temp",      name:"Krāsu temperatūra",min:-.5,max:.5,  step:.02, fmt:v=>(v>0?"+":"")+Math.round(v/.5*100)+(v>=0?" silts":" auksts")},
+  {key:"hue",       name:"Nokrāsas nobīde", min:0,   max:360, step:1,   fmt:v=>Math.round(v)+"°"},
+  {head:"Stils"},
+  {key:"posterize", name:"Toņu joslas",     min:0,   max:1,   step:.02, fmt:v=>Math.round(v*100)+"%"},
+  {key:"bloom",     name:"Mirdzums (bloom)",min:0,   max:1,   step:.02, fmt:v=>Math.round(v*100)+"%"},
+  {head:"Tekstūra"},
+  {key:"blur",      name:"Izpludinājums",   min:0,   max:14,  step:.5,  fmt:v=>v.toFixed(1)+" px"},
+  {key:"grain",     name:"Grauds (grain)",  min:0,   max:.6,  step:.01, fmt:v=>Math.round(v/.6*100)+"%"},
+  {key:"vignette",  name:"Vinjete",         min:0,   max:.7,  step:.01, fmt:v=>Math.round(v/.7*100)+"%"},
+  {key:"scanline",  name:"Skenlīnijas",     min:0,   max:.5,  step:.01, fmt:v=>Math.round(v/.5*100)+"%"},
+];
+
+// Neutral baseline used by the reset button
+const FX_DEFAULT={brightness:1,contrast:1,saturate:1,temp:0,hue:0,posterize:0,bloom:0,blur:0,grain:.12,vignette:.18,scanline:0};
+// One-tap effect combinations (only the changed keys are listed)
+const FX_PRESETS=[
+  {name:"Kino",     fx:{contrast:1.15,saturate:.95,temp:.12,vignette:.35,grain:.18,bloom:.12}},
+  {name:"Neons",    fx:{saturate:1.5,contrast:1.2,bloom:.55,grain:.1,vignette:.25,temp:-.1}},
+  {name:"Retro",    fx:{posterize:.45,grain:.3,saturate:1.1,contrast:1.1,vignette:.3,scanline:.15,temp:.15}},
+  {name:"Sapņains", fx:{blur:4,bloom:.5,saturate:1.15,brightness:1.08,grain:.08,vignette:.18,temp:.08}},
+  {name:"Melnbalts",fx:{saturate:0,contrast:1.2,grain:.2,vignette:.32}},
+  {name:"Silts",    fx:{temp:.35,saturate:1.05,contrast:1.05,brightness:1.03,grain:.1,vignette:.2,bloom:.15}},
+];
+function applyFx(fx){ state.fx=Object.assign({},FX_DEFAULT,fx); renderEffects(); scheduleDraw(); }
+
+// ---------- Helpers ----------
+function hexToRgb(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgbToHex(r,g,b){const c=n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,"0");
+  return "#"+c(r)+c(g)+c(b);}
+
+// ---------- Point setup ----------
+function buildPoints(keep){
+  const layout=LAYOUTS[state.count];
+  const pal=currentPalette();
+  const old=state.points;
+  state.points=layout.map((p,i)=>({
+    x:p[0], y:p[1],
+    color:(keep&&old[i])?old[i].color:pal[i],
+    strength:(keep&&old[i])?old[i].strength:1,
+    size:(keep&&old[i])?old[i].size:1,
+    shape:(keep&&old[i])?old[i].shape:"dot",
+    phase:Math.random()*Math.PI*2,
+    ax:.05+Math.random()*.06, ay:.05+Math.random()*.06,
+    fx:.6+Math.random()*.8, fy:.6+Math.random()*.8
+  }));
+}
+
+function applyPreset(idx){
+  state.presetIndex=idx;
+  const pal=currentPalette();
+  state.points.forEach((p,i)=>p.color=pal[i]);
+  updatePresetLabel();
+  syncPresetUI(); renderSwatches(); positionHandles(); scheduleDraw();
+}
+
+// ---------- Rendering ----------
+const preview=document.getElementById("preview");
+const pctx=preview.getContext("2d");
+const idw=document.createElement("canvas");
+const ictx=idw.getContext("2d");
+let noiseCanvas=null,noiseKey="";
+
+function triWave(v){let f=((v%2)+2)%2;f=f>1?2-f:f;return 0.08+f*0.84;}
+function effPositions(t){
+  const mode=state.animMode, on=state.animate;
+  return state.points.map((p,i)=>{
+    let x=p.x,y=p.y,str=p.strength,siz=p.size;
+    if(on){
+      switch(mode){
+        case "orbit":{
+          const r=Math.hypot(p.x-.5,p.y-.5), a=Math.atan2(p.y-.5,p.x-.5)+t*.5;
+          x=.5+r*Math.cos(a); y=.5+r*Math.sin(a); break;
+        }
+        case "pulse":{
+          const s=Math.sin(t*1.6+p.phase);
+          siz=p.size*(1+.35*s); str=p.strength*(1+.45*s);
+          x=p.x+Math.sin(t*.5+p.phase)*.015; y=p.y+Math.cos(t*.5+p.phase)*.015; break;
+        }
+        case "wave":{
+          x=p.x+Math.sin(t*1.2+i*.9)*.13; y=p.y+Math.cos(t*.6+i*.9)*.05; break;
+        }
+        case "drift":{
+          x=triWave(p.x+Math.cos(p.phase)*t*.06); y=triWave(p.y+Math.sin(p.phase)*t*.06); break;
+        }
+        case "swirl":{
+          const r=Math.hypot(p.x-.5,p.y-.5), a=Math.atan2(p.y-.5,p.x-.5)+t*(.8-r*.9);
+          const rr=r*(1+.15*Math.sin(t*1.3+p.phase));
+          x=.5+rr*Math.cos(a); y=.5+rr*Math.sin(a); break;
+        }
+        default:{ // float
+          x=p.x+Math.sin(t*p.fx+p.phase)*p.ax; y=p.y+Math.cos(t*p.fy+p.phase)*p.ay;
+        }
+      }
+      x=Math.max(.03,Math.min(.97,x)); y=Math.max(.03,Math.min(.97,y));
+    }
+    return {x,y,rgb:hexToRgb(p.color),str,siz,shp:p.shape};
+  });
+}
+
+// Fill idw canvas at given buffer resolution
+function renderMesh(bw,bh,t){
+  idw.width=bw; idw.height=bh;
+  const img=ictx.createImageData(bw,bh);
+  const d=img.data;
+  const pts=effPositions(t);
+  const aspect=bh/bw;
+  for(let y=0;y<bh;y++){
+    const ny=y/(bh-1);
+    for(let x=0;x<bw;x++){
+      const nx=x/(bw-1);
+      let r=0,g=0,b=0,ws=0;
+      for(let k=0;k<pts.length;k++){
+        const P=pts[k];
+        const dx=nx-P.x, dy=(ny-P.y)*aspect;
+        let dist;
+        switch(P.shp){
+          case "line":     dist=Math.abs(dy); break;
+          case "diamond":  dist=Math.abs(dx)+Math.abs(dy); break;
+          case "square":   dist=Math.max(Math.abs(dx),Math.abs(dy)); break;
+          case "ring":     dist=Math.abs(Math.sqrt(dx*dx+dy*dy)-.16); break;
+          case "triangle":{
+            const a0=-dy, a1=.866*dx+.5*dy, a2=-.866*dx+.5*dy;
+            dist=Math.max(0,Math.max(a0,Math.max(a1,a2))-.10); break;
+          }
+          default:         dist=Math.sqrt(dx*dx+dy*dy); // dot
+        }
+        const sd=dist/P.siz;
+        const w=P.str/(sd*sd*sd+1e-5);
+        const c=P.rgb;
+        r+=w*c[0]; g+=w*c[1]; b+=w*c[2]; ws+=w;
+      }
+      const i=(y*bw+x)*4;
+      d[i]=r/ws; d[i+1]=g/ws; d[i+2]=b/ws; d[i+3]=255;
+    }
+  }
+  ictx.putImageData(img,0,0);
+}
+
+function getNoise(w,h){
+  const key=w+"x"+h;
+  if(noiseCanvas&&noiseKey===key) return noiseCanvas;
+  const c=document.createElement("canvas");c.width=w;c.height=h;
+  const cx=c.getContext("2d");const im=cx.createImageData(w,h);const dd=im.data;
+  for(let i=0;i<dd.length;i+=4){const v=Math.random()*255;dd[i]=dd[i+1]=dd[i+2]=v;dd[i+3]=255;}
+  cx.putImageData(im,0,0);noiseCanvas=c;noiseKey=key;return c;
+}
+
+// ---------- Offscreen canvas pool ----------
+const _off={};
+function getOff(name,W,H){
+  let c=_off[name];
+  if(!c){c=document.createElement("canvas");_off[name]=c;}
+  if(c.width!==W||c.height!==H){c.width=W;c.height=H;}
+  return c;
+}
+
+// Soft glow bleeding from bright areas.
+function bloomPass(ctx,W,H,amt){
+  const snap=getOff("bloom",W,H);const sx=snap.getContext("2d");
+  sx.clearRect(0,0,W,H);sx.drawImage(ctx.canvas,0,0,W,H);
+  ctx.save();
+  ctx.globalCompositeOperation="screen";ctx.globalAlpha=amt*0.8;
+  ctx.filter=`blur(${10*(W/1080)}px) brightness(1.35)`;
+  ctx.drawImage(snap,0,0,W,H);
+  ctx.restore();
+}
+
+// Posterize: reduce colour levels for banded, poster-like tones.
+function posterizePass(ctx,W,H,amt){
+  const levels=Math.max(3,Math.round(14-amt*11));
+  const step=255/(levels-1);
+  const img=ctx.getImageData(0,0,W,H);const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]=Math.round(d[i]/step)*step;
+    d[i+1]=Math.round(d[i+1]/step)*step;
+    d[i+2]=Math.round(d[i+2]/step)*step;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+// Draw the complete scene onto a target 2d context at W x H
+function drawScene(ctx,W,H,t,bufW){
+  const fx=state.fx;
+  renderMesh(bufW,Math.max(2,Math.round(bufW*H/W)),t);
+
+  // base = filtered gradient rendered into an offscreen buffer
+  const base=getOff("base",W,H);const bctx=base.getContext("2d");
+  bctx.clearRect(0,0,W,H);
+  bctx.save();
+  bctx.imageSmoothingEnabled=true;bctx.imageSmoothingQuality="high";
+  const blurPx=fx.blur*(W/1080);
+  bctx.filter=`brightness(${fx.brightness}) contrast(${fx.contrast}) saturate(${fx.saturate}) hue-rotate(${fx.hue}deg) blur(${blurPx}px)`;
+  const o=Math.ceil(blurPx*2);
+  bctx.drawImage(idw,-o,-o,W+o*2,H+o*2);
+  bctx.restore();
+
+  // colour temperature
+  if(Math.abs(fx.temp)>0.001){
+    bctx.save();bctx.globalCompositeOperation="soft-light";
+    bctx.globalAlpha=Math.min(1,Math.abs(fx.temp)*1.6);
+    bctx.fillStyle=fx.temp>0?"#ff9642":"#3aa0ff";
+    bctx.fillRect(0,0,W,H);bctx.restore();
+  }
+
+  // compose base to target
+  ctx.clearRect(0,0,W,H);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  ctx.drawImage(base,0,0,W,H);
+
+  if(fx.bloom>0.001) bloomPass(ctx,W,H,fx.bloom);
+  if(fx.posterize>0.001) posterizePass(ctx,W,H,fx.posterize);
+
+  // grain
+  if(fx.grain>0.001){
+    const nw=Math.min(W,1400), nh=Math.round(nw*H/W);
+    ctx.save();ctx.globalAlpha=fx.grain;ctx.globalCompositeOperation="overlay";
+    ctx.drawImage(getNoise(nw,nh),0,0,W,H);ctx.restore();
+  }
+  // scanlines
+  if(fx.scanline>0.001){
+    ctx.save();ctx.globalAlpha=fx.scanline;ctx.fillStyle="#000";
+    const gap=Math.max(2,Math.round(H/900));
+    for(let y=0;y<H;y+=gap*2) ctx.fillRect(0,y,W,gap);
+    ctx.restore();
+  }
+  // vignette
+  if(fx.vignette>0.001){
+    const cx=W/2,cy=H/2,r=Math.hypot(W,H)/2;
+    const g=ctx.createRadialGradient(cx,cy,r*0.35,cx,cy,r);
+    g.addColorStop(0,"rgba(0,0,0,0)");
+    g.addColorStop(1,`rgba(0,0,0,${fx.vignette})`);
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+}
+
+// ---------- Preview loop ----------
+let rafId=null, animT=0, lastTs=0, needDraw=true;
+
+function sizePreview(){
+  const wrap=document.getElementById("cwrap");
+  const stage=wrap.parentElement;
+  const aspect=state.exportH/state.exportW;
+  const maxH=stage.clientHeight-64;
+  const maxW=stage.clientWidth-64;
+  let h=maxH, w=h/aspect;
+  if(w>maxW){w=maxW;h=w*aspect;}
+  w=Math.max(120,w);h=Math.max(120,h);
+  wrap.style.width=w+"px";wrap.style.height=h+"px";
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  preview.width=Math.round(w*dpr);preview.height=Math.round(h*dpr);
+  preview.style.width=w+"px";preview.style.height=h+"px";
+  positionHandles();
+  needDraw=true;
+}
+
+function drawPreview(){
+  drawScene(pctx,preview.width,preview.height,animT,140);
+}
+
+function scheduleDraw(){needDraw=true;}
+
+function loop(ts){
+  if(!lastTs)lastTs=ts;
+  const dt=(ts-lastTs)/1000;lastTs=ts;
+  if(state.animate){animT+=dt*state.speed;needDraw=true;}
+  if(needDraw){drawPreview();needDraw=false;}
+  positionHandles();
+  rafId=requestAnimationFrame(loop);
+}
+
+// ---------- Handles ----------
+const handlesEl=document.getElementById("handles");
+function renderHandles(){
+  handlesEl.innerHTML="";
+  state.points.forEach((p,i)=>{
+    const el=document.createElement("div");
+    el.className="handle";
+    el.style.background=p.color;
+    el.innerHTML=`<span>Punkts ${i+1}</span>`;
+    el.dataset.i=i;
+    handlesEl.appendChild(el);
+    let dragging=false;
+    const move=(cx,cy)=>{
+      const r=preview.getBoundingClientRect();
+      p.x=Math.max(0,Math.min(1,(cx-r.left)/r.width));
+      p.y=Math.max(0,Math.min(1,(cy-r.top)/r.height));
+      scheduleDraw();positionHandles();
+    };
+    el.addEventListener("pointerdown",e=>{dragging=true;el.setPointerCapture(e.pointerId);e.preventDefault();});
+    el.addEventListener("pointermove",e=>{if(dragging)move(e.clientX,e.clientY);});
+    el.addEventListener("pointerup",e=>{dragging=false;el.releasePointerCapture(e.pointerId);});
+  });
+  positionHandles();
+}
+function positionHandles(){
+  const w=preview.clientWidth,h=preview.clientHeight;
+  const nodes=handlesEl.children;
+  for(let i=0;i<nodes.length&&i<state.points.length;i++){
+    const pt=state.points[i];
+    const d=Math.round(15+pt.size*11);
+    nodes[i].style.left=(pt.x*w)+"px";
+    nodes[i].style.top=(pt.y*h)+"px";
+    nodes[i].style.width=d+"px";nodes[i].style.height=d+"px";
+    nodes[i].style.margin=(-d/2)+"px 0 0 "+(-d/2)+"px";
+    nodes[i].style.background=pt.color;
+    nodes[i].style.opacity=(0.55+Math.min(1,pt.strength)/1*0.45).toFixed(2);
+  }
+}
+
+// ---------- UI: presets ----------
+function renderThemes(){
+  const wrap=document.getElementById("themes");wrap.innerHTML="";
+  THEME_ORDER.forEach(key=>{
+    const b=document.createElement("button");
+    b.className="theme-tab"+(key===state.theme?" on":"");
+    b.textContent=THEME_NAMES[key];
+    b.addEventListener("click",()=>{
+      state.theme=key;
+      renderThemes();renderPresets();applyPreset(state.presetIndex);
+    });
+    wrap.appendChild(b);
+  });
+}
+function renderPresets(){
+  const wrap=document.getElementById("presets");wrap.innerHTML="";
+  THEMES[state.theme].forEach((item,idx)=>{
+    const pal=item.c.slice(0,state.count);
+    const el=document.createElement("div");
+    el.className="preset"+(idx===state.presetIndex?" on":"");
+    el.style.background=`linear-gradient(135deg,${pal.join(",")})`;
+    el.title=item.n||("Presets "+(idx+1));
+    el.addEventListener("click",()=>applyPreset(idx));
+    wrap.appendChild(el);
+  });
+}
+function syncPresetUI(){
+  document.querySelectorAll("#presets .preset").forEach((el,i)=>
+    el.classList.toggle("on",i===state.presetIndex));
+}
+
+// ---------- UI: swatches ----------
+function renderSwatches(){
+  const wrap=document.getElementById("swatches");wrap.innerHTML="";
+  state.points.forEach((p,i)=>{
+    const block=document.createElement("div");block.className="sw-block";
+    block.innerHTML=`
+      <div class="sw-head">
+        <div class="sw-chip" style="background:${p.color}">
+          <input type="color" class="c" value="${p.color}">
+        </div>
+        <span class="sw-hex">${p.color.toUpperCase()}</span>
+        <span class="sw-i">P${i+1}</span>
+      </div>
+      <div class="mini">
+        <label>Ietekme</label>
+        <input type="range" class="st" min="0.2" max="3" step="0.05" value="${p.strength}">
+        <span class="mv sv">${p.strength.toFixed(2)}×</span>
+      </div>
+      <div class="mini">
+        <label>Izmērs</label>
+        <input type="range" class="sz" min="0.3" max="2.5" step="0.05" value="${p.size}">
+        <span class="mv zv">${p.size.toFixed(2)}×</span>
+      </div>
+      <div class="mini">
+        <label>Forma</label>
+        <select class="shp">
+          <option value="dot">Punkts</option>
+          <option value="line">Līnija</option>
+          <option value="diamond">Rombs</option>
+          <option value="square">Kvadrāts</option>
+          <option value="ring">Gredzens</option>
+          <option value="triangle">Trijstūris</option>
+        </select>
+      </div>`;
+    const chip=block.querySelector(".sw-chip");
+    const hex=block.querySelector(".sw-hex");
+    block.querySelector(".c").addEventListener("input",e=>{
+      p.color=e.target.value;chip.style.background=p.color;hex.textContent=p.color.toUpperCase();
+      positionHandles();scheduleDraw();
+    });
+    const st=block.querySelector(".st"),sv=block.querySelector(".sv");
+    st.addEventListener("input",e=>{p.strength=parseFloat(e.target.value);sv.textContent=p.strength.toFixed(2)+"×";scheduleDraw();});
+    const sz=block.querySelector(".sz"),zv=block.querySelector(".zv");
+    sz.addEventListener("input",e=>{p.size=parseFloat(e.target.value);zv.textContent=p.size.toFixed(2)+"×";positionHandles();scheduleDraw();});
+    const shp=block.querySelector(".shp");
+    shp.value=p.shape;
+    shp.addEventListener("change",e=>{p.shape=e.target.value;scheduleDraw();});
+    wrap.appendChild(block);
+  });
+}
+
+// ---------- UI: effects sliders ----------
+function renderEffects(){
+  const wrap=document.getElementById("effects");wrap.innerHTML="";
+  EFFECTS.forEach(ef=>{
+    if(ef.head){
+      const h=document.createElement("div");h.className="fx-head";h.textContent=ef.head;
+      wrap.appendChild(h);return;
+    }
+    const div=document.createElement("div");div.className="slider";
+    div.innerHTML=`
+      <div class="top"><span class="name">${ef.name}</span><span class="val" id="fxv_${ef.key}"></span></div>
+      <input type="range" min="${ef.min}" max="${ef.max}" step="${ef.step}" value="${state.fx[ef.key]}" id="fx_${ef.key}">`;
+    wrap.appendChild(div);
+    const inp=div.querySelector("input");
+    const val=div.querySelector(".val");
+    const upd=()=>{val.textContent=ef.fmt(state.fx[ef.key]);};
+    upd();
+    inp.addEventListener("input",e=>{state.fx[ef.key]=parseFloat(e.target.value);upd();scheduleDraw();});
+  });
+}
+
+// ---------- Count segment ----------
+document.getElementById("countSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  document.querySelectorAll("#countSeg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  state.count=parseInt(b.dataset.n);
+  state.presetIndex=0;
+  buildPoints(false);
+  updatePresetLabel();
+  renderPresets();renderSwatches();renderHandles();scheduleDraw();
+});
+
+// ---------- Buttons: shuffle / scatter / reset ----------
+document.getElementById("btnShuffle").addEventListener("click",()=>{
+  // rotate colors among points
+  const cols=state.points.map(p=>p.color);
+  cols.push(cols.shift());
+  state.points.forEach((p,i)=>p.color=cols[i]);
+  renderSwatches();positionHandles();scheduleDraw();
+});
+document.getElementById("btnScatter").addEventListener("click",()=>{
+  state.points.forEach(p=>{p.x=.12+Math.random()*.76;p.y=.12+Math.random()*.76;p.phase=Math.random()*Math.PI*2;});
+  positionHandles();scheduleDraw();
+});
+document.getElementById("btnReset").addEventListener("click",()=>{
+  buildPoints(true);renderHandles();scheduleDraw();
+});
+
+// ---------- Image color extraction (median cut) ----------
+function extractColors(imgData,n){
+  const px=[];const d=imgData.data;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]<125)continue;
+    px.push([d[i],d[i+1],d[i+2]]);
+  }
+  if(!px.length)return null;
+  // build up to 8 buckets, then pick n
+  let buckets=[px];
+  while(buckets.length<8){
+    // split the bucket with largest color range
+    let bi=0,bestRange=-1;
+    buckets.forEach((bk,idx)=>{
+      const r=channelRange(bk);
+      if(r.range>bestRange){bestRange=r.range;bi=idx;}
+    });
+    const bk=buckets[bi];const {ch}=channelRange(bk);
+    bk.sort((a,b)=>a[ch]-b[ch]);
+    const mid=Math.floor(bk.length/2);
+    buckets.splice(bi,1,bk.slice(0,mid),bk.slice(mid));
+    if(buckets.some(b=>b.length===0))break;
+  }
+  let cols=buckets.filter(b=>b.length).map(b=>{
+    const s=[0,0,0];b.forEach(p=>{s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];});
+    return {rgb:[s[0]/b.length,s[1]/b.length,s[2]/b.length],pop:b.length};
+  });
+  cols.sort((a,b)=>b.pop-a.pop);
+  const out=cols.slice(0,n).map(c=>rgbToHex(c.rgb[0],c.rgb[1],c.rgb[2]));
+  while(out.length<n)out.push(out[out.length-1]||"#888888");
+  return out;
+}
+function channelRange(bk){
+  const mn=[255,255,255],mx=[0,0,0];
+  bk.forEach(p=>{for(let c=0;c<3;c++){if(p[c]<mn[c])mn[c]=p[c];if(p[c]>mx[c])mx[c]=p[c];}});
+  const ranges=[mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]];
+  const ch=ranges.indexOf(Math.max(...ranges));
+  return {ch,range:ranges[ch]};
+}
+
+const fileInput=document.getElementById("fileInput");
+const drop=document.getElementById("drop");
+drop.addEventListener("click",()=>fileInput.click());
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.style.borderColor="var(--accent)";});
+drop.addEventListener("dragleave",()=>{drop.style.borderColor="";});
+drop.addEventListener("drop",e=>{e.preventDefault();drop.style.borderColor="";if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+fileInput.addEventListener("change",e=>{if(e.target.files[0])handleFile(e.target.files[0]);});
+function handleFile(file){
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    const s=120;const sc=Math.min(s/img.width,s/img.height,1);
+    const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));
+    const c=document.createElement("canvas");c.width=w;c.height=h;
+    const cx=c.getContext("2d");cx.drawImage(img,0,0,w,h);
+    const data=cx.getImageData(0,0,w,h);
+    const cols=extractColors(data,state.count);
+    URL.revokeObjectURL(url);
+    if(cols){state.points.forEach((p,i)=>p.color=cols[i]);renderSwatches();positionHandles();scheduleDraw();
+      setStatus("Paleti izvilkām no attēla.");}
+    else setStatus("Neizdevās nolasīt krāsas no šī attēla.");
+  };
+  img.onerror=()=>setStatus("Attēlu neizdevās ielādēt.");
+  img.src=url;
+}
+
+// ---------- Animation toggle ----------
+const animSwitch=document.getElementById("animSwitch");
+animSwitch.addEventListener("click",()=>{
+  state.animate=!state.animate;animSwitch.classList.toggle("on",state.animate);scheduleDraw();
+});
+document.getElementById("animMode").addEventListener("change",e=>{
+  state.animMode=e.target.value;
+  if(!state.animate){state.animate=true;animSwitch.classList.add("on");}
+  scheduleDraw();
+});
+document.getElementById("speed").addEventListener("input",e=>{
+  state.speed=parseFloat(e.target.value);document.getElementById("speedVal").textContent=state.speed.toFixed(2)+"×";
+});
+document.getElementById("dur").addEventListener("input",e=>{
+  document.getElementById("durVal").textContent=e.target.value+" s";
+});
+
+// ---------- Resolution ----------
+const dpr=window.devicePixelRatio||1;
+const devW=Math.round(screen.width*dpr), devH=Math.round(screen.height*dpr);
+const RES=[
+  {label:`Šī ierīce (${devW}×${devH})`,w:devW,h:devH},
+  {label:"iPhone 15 Pro (1179×2556)",w:1179,h:2556},
+  {label:"iPhone 14/13 (1170×2532)",w:1170,h:2532},
+  {label:"Pixel 8 (1080×2400)",w:1080,h:2400},
+  {label:"Samsung S24 (1080×2340)",w:1080,h:2340},
+  {label:"Full HD (1080×1920)",w:1080,h:1920},
+  {label:"QHD+ (1440×3120)",w:1440,h:3120},
+  {label:"Pielāgots...",w:0,h:0}
+];
+const resSelect=document.getElementById("resSelect");
+RES.forEach((r,i)=>{const o=document.createElement("option");o.value=i;o.textContent=r.label;resSelect.appendChild(o);});
+function applyRes(){
+  const i=parseInt(resSelect.value);const r=RES[i];
+  const custom=document.getElementById("customDims");
+  if(r.w===0){
+    custom.style.display="grid";
+    state.exportW=parseInt(document.getElementById("customW").value)||1080;
+    state.exportH=parseInt(document.getElementById("customH").value)||2340;
+  }else{
+    custom.style.display="none";
+    state.exportW=r.w;state.exportH=r.h;
+  }
+  document.getElementById("stageMeta").textContent=`${state.exportW} × ${state.exportH}`;
+  sizePreview();
+}
+resSelect.addEventListener("change",applyRes);
+document.getElementById("customW").addEventListener("input",applyRes);
+document.getElementById("customH").addEventListener("input",applyRes);
+resSelect.value=0;
+
+// ---------- Export PNG ----------
+function setStatus(t){document.getElementById("status").textContent=t;}
+document.getElementById("btnPng").addEventListener("click",()=>{
+  setStatus("Ģenerē PNG...");
+  const c=document.createElement("canvas");c.width=state.exportW;c.height=state.exportH;
+  const cx=c.getContext("2d");
+  const buf=Math.max(200,Math.round(240*state.exportW/1080));
+  drawScene(cx,c.width,c.height,animT,Math.min(buf,320));
+  c.toBlob(b=>{
+    downloadBlob(b,`gradient_${state.exportW}x${state.exportH}.png`);
+    setStatus("Saglabāts PNG "+state.exportW+"×"+state.exportH+".");
+  },"image/png");
+});
+
+// ---------- Export video (MP4 preferred, WebM fallback) ----------
+document.getElementById("btnVideo").addEventListener("click",()=>{
+  if(!("MediaRecorder"in window)||!HTMLCanvasElement.prototype.captureStream){
+    setStatus("Šis pārlūks neatbalsta video ierakstu. Izmanto Chrome vai Firefox datorā.");return;
+  }
+  const maxW=1080;
+  let vw=state.exportW,vh=state.exportH;
+  if(vw>maxW){const s=maxW/vw;vw=Math.round(vw*s);vh=Math.round(vh*s);}
+  const c=document.createElement("canvas");c.width=vw;c.height=vh;const cx=c.getContext("2d");
+  const fps=30;const dur=parseInt(document.getElementById("dur").value)||5;
+  const wasAnim=state.animate;state.animate=true;
+  const stream=c.captureStream(fps);
+  const cands=["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];
+  const mime=cands.find(m=>{try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}})||"video/webm";
+  const ext=mime.indexOf("mp4")>=0?"mp4":"webm";
+  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:12000000});
+  const chunks=[];
+  rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+  rec.onstop=()=>{
+    const blob=new Blob(chunks,{type:mime});
+    downloadBlob(blob,`gradient_${vw}x${vh}.${ext}`);
+    setStatus("Saglabāts "+ext.toUpperCase()+" video "+vw+"×"+vh+" ("+dur+" s).");
+    state.animate=wasAnim;
+    document.getElementById("btnVideo").disabled=false;
+  };
+  document.getElementById("btnVideo").disabled=true;
+  setStatus("Ieraksta "+ext.toUpperCase()+" video... "+dur+" s");
+  const t0=performance.now();
+  rec.start();
+  const buf=Math.min(180,Math.round(160*vw/1080)+80);
+  function frame(){
+    const el=(performance.now()-t0)/1000;
+    drawScene(cx,vw,vh,el*state.speed,buf);
+    if(el<dur) requestAnimationFrame(frame);
+    else setTimeout(()=>rec.stop(),120);
+  }
+  requestAnimationFrame(frame);
+});
+
+// ---------- Export animated GIF (gif.js from CDN) ----------
+function ensureGif(){
+  return new Promise((res,rej)=>{
+    if(window.GIF) return res();
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js";
+    s.onload=()=>res(); s.onerror=()=>rej();
+    document.head.appendChild(s);
+  });
+}
+document.getElementById("btnGif").addEventListener("click",async()=>{
+  const btn=document.getElementById("btnGif");
+  btn.disabled=true;
+  setStatus("Sagatavo GIF...");
+  try{ await ensureGif(); }
+  catch(e){ setStatus("Neizdevās ielādēt GIF moduli (vajadzīgs internets)."); btn.disabled=false; return; }
+  let workerUrl;
+  try{
+    const wr=await fetch("https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js");
+    workerUrl=URL.createObjectURL(await wr.blob());
+  }catch(e){ setStatus("Neizdevās ielādēt GIF darbinieku."); btn.disabled=false; return; }
+
+  const targetW=Math.min(480,state.exportW);
+  const scale=targetW/state.exportW;
+  const gw=Math.round(state.exportW*scale), gh=Math.round(state.exportH*scale);
+  const c=document.createElement("canvas");c.width=gw;c.height=gh;const cx=c.getContext("2d");
+  const fps=12, dur=parseInt(document.getElementById("dur").value)||5;
+  const frames=fps*dur;
+  const wasAnim=state.animate; state.animate=true;
+  const buf=Math.min(160,Math.round(140*gw/1080)+80);
+
+  let gif;
+  try{ gif=new GIF({workers:2,quality:8,width:gw,height:gh,workerScript:workerUrl,dither:true}); }
+  catch(e){ setStatus("GIF kodētāju neizdevās sākt."); state.animate=wasAnim; btn.disabled=false; return; }
+
+  for(let f=0;f<frames;f++){
+    drawScene(cx,gw,gh,(f/fps)*state.speed,buf);
+    gif.addFrame(cx,{copy:true,delay:1000/fps});
+  }
+  gif.on("progress",p=>setStatus("Kodē GIF... "+Math.round(p*100)+"%"));
+  gif.on("finished",blob=>{
+    downloadBlob(blob,`gradient_${gw}x${gh}.gif`);
+    setStatus("Saglabāts GIF "+gw+"×"+gh+" ("+dur+" s).");
+    state.animate=wasAnim; URL.revokeObjectURL(workerUrl); btn.disabled=false;
+  });
+  setStatus("Kodē GIF...");
+  gif.render();
+});
+
+function downloadBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+function renderFxPresets(){
+  const wrap=document.getElementById("fxPresets");wrap.innerHTML="";
+  FX_PRESETS.forEach(p=>{
+    const b=document.createElement("button");
+    b.className="fx-preset";b.textContent=p.name;
+    b.addEventListener("click",()=>applyFx(p.fx));
+    wrap.appendChild(b);
+  });
+}
+document.getElementById("btnResetFx").addEventListener("click",()=>applyFx({}));
+
+// ---------- Init ----------
+function init(){
+  buildPoints(false);
+  renderThemes();renderPresets();renderSwatches();renderEffects();renderFxPresets();renderHandles();
+  updatePresetLabel();
+  applyRes();
+  sizePreview();
+  scheduleDraw();
+  rafId=requestAnimationFrame(loop);
+}
+window.addEventListener("resize",sizePreview);
+init();
+</script>
+</body>
+</html>
