@@ -201,9 +201,12 @@
   .reset-btn{font-family:inherit;font-size:10.5px;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:7px;padding:3px 9px;cursor:pointer;transition:all .12s;letter-spacing:.02em}
   .reset-btn:hover{border-color:var(--accent-dim);color:var(--text)}
   .fs-enter{
-    position:absolute;top:18px;right:18px;z-index:5;
+    position:fixed;
+    top:calc(env(safe-area-inset-top,0px) + 14px);
+    right:calc(env(safe-area-inset-right,0px) + 14px);
+    z-index:900;
     width:40px;height:40px;border-radius:11px;
-    background:rgba(20,19,28,.55);border:1px solid var(--line-2);color:var(--text);
+    background:rgba(20,19,28,.6);border:1px solid var(--line-2);color:var(--text);
     cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .12s;
   }
@@ -626,7 +629,8 @@ function effPositions(t){
       }
       x=Math.max(.03,Math.min(.97,x)); y=Math.max(.03,Math.min(.97,y));
     }
-    return {x,y,rgb:hexToRgb(p.color),str,siz,shp:p.shape};
+    const fv=(p.fade==null)?1:(p.fade*p.fade*(3-2*p.fade)); // smoothstep fade-in
+    return {x,y,rgb:hexToRgb(p.color),str:str*fv,siz,shp:p.shape};
   });
 }
 
@@ -843,6 +847,10 @@ function loop(ts){
   if(fsActive && needleLineEl && Math.abs(needleTarget-needleCur)>0.05){
     needleCur+=(needleTarget-needleCur)*0.2; updateNeedle();
   }
+  for(let i=0;i<state.points.length;i++){
+    const p=state.points[i];
+    if(p.fade!=null && p.fade<1){ p.fade=Math.min(1,p.fade+dt/0.6); needDraw=true; }
+  }
   if(state.animate){animT+=dt*state.speed;needDraw=true;}
   if(needDraw){drawPreview();needDraw=false;}
   positionHandles();
@@ -993,10 +1001,27 @@ function renderEffects(){
 
 // ---------- Count segment ----------
 function applyCount(n){
+  const old=state.points, oldN=old.length;
   state.count=n;
-  state.presetIndex=0;
   scatter=null;
-  buildPoints(false);
+  if(n<=oldN){
+    state.points=old.slice(0,n);
+  }else{
+    const layout=LAYOUTS[n], pal=currentPalette();
+    const add=[];
+    for(let i=oldN;i<n;i++){
+      add.push({
+        x:layout[i][0], y:layout[i][1],
+        color:pal[i]||"#888888",
+        strength:1, size:1, shape:"dot",
+        phase:Math.random()*Math.PI*2,
+        ax:.05+Math.random()*.06, ay:.05+Math.random()*.06,
+        fx:.6+Math.random()*.8, fy:.6+Math.random()*.8,
+        fade:0                       // new points fade in
+      });
+    }
+    state.points=old.concat(add);
+  }
   updatePresetLabel();
   renderPresets();renderSwatches();renderHandles();
   document.querySelectorAll("#countSeg button").forEach(x=>x.classList.toggle("on",parseInt(x.dataset.n)===n));
