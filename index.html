@@ -283,6 +283,10 @@
         <div class="top"><span class="name">Ātrums</span><span class="val" id="speedVal">0.5×</span></div>
         <input type="range" id="speed" min="0" max="2" step="0.05" value="0.5">
       </div>
+      <div class="slider">
+        <div class="top"><span class="name">Kustības izplūdums (motion blur)</span><span class="val" id="mbVal">0%</span></div>
+        <input type="range" id="motionblur" min="0" max="1" step="0.02" value="0">
+      </div>
     </div>
 
     <!-- EXPORT -->
@@ -421,6 +425,7 @@ const state = {
        blur:0, grain:.12, vignette:.18, scanline:0 },
   animate:false,
   animMode:"float",
+  motionblur:0,
   speed:.5,
   exportW:1080, exportH:2340
 };
@@ -666,6 +671,20 @@ function drawScene(ctx,W,H,t,bufW){
   }
 }
 
+// Motion blur via temporal accumulation: blend each freshly rendered frame
+// onto the retained target with a low alpha, leaving trails on moving colour.
+function drawFrameMB(ctx,W,H,t,buf){
+  const mb=state.motionblur||0;
+  if(mb>0.001 && state.animate){
+    const f=getOff("mbf",W,H);
+    drawScene(f.getContext("2d"),W,H,t,buf);
+    const a=Math.max(0.06,1-mb*0.94);
+    ctx.globalAlpha=a; ctx.drawImage(f,0,0,W,H); ctx.globalAlpha=1;
+  } else {
+    drawScene(ctx,W,H,t,buf);
+  }
+}
+
 // ---------- Preview loop ----------
 let rafId=null, animT=0, lastTs=0, needDraw=true;
 
@@ -687,7 +706,7 @@ function sizePreview(){
 }
 
 function drawPreview(){
-  drawScene(pctx,preview.width,preview.height,animT,140);
+  drawFrameMB(pctx,preview.width,preview.height,animT,140);
 }
 
 function scheduleDraw(){needDraw=true;}
@@ -950,6 +969,11 @@ document.getElementById("animMode").addEventListener("change",e=>{
 document.getElementById("speed").addEventListener("input",e=>{
   state.speed=parseFloat(e.target.value);document.getElementById("speedVal").textContent=state.speed.toFixed(2)+"×";
 });
+document.getElementById("motionblur").addEventListener("input",e=>{
+  state.motionblur=parseFloat(e.target.value);
+  document.getElementById("mbVal").textContent=Math.round(state.motionblur*100)+"%";
+  scheduleDraw();
+});
 document.getElementById("dur").addEventListener("input",e=>{
   document.getElementById("durVal").textContent=e.target.value+" s";
 });
@@ -1011,30 +1035,31 @@ document.getElementById("btnVideo").addEventListener("click",()=>{
   let vw=state.exportW,vh=state.exportH;
   if(vw>maxW){const s=maxW/vw;vw=Math.round(vw*s);vh=Math.round(vh*s);}
   const c=document.createElement("canvas");c.width=vw;c.height=vh;const cx=c.getContext("2d");
-  const fps=30;const dur=parseInt(document.getElementById("dur").value)||5;
+  const fps=60;const dur=parseInt(document.getElementById("dur").value)||5;
   const wasAnim=state.animate;state.animate=true;
   const stream=c.captureStream(fps);
   const cands=["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];
   const mime=cands.find(m=>{try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}})||"video/webm";
   const ext=mime.indexOf("mp4")>=0?"mp4":"webm";
-  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:12000000});
+  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:16000000});
   const chunks=[];
   rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
   rec.onstop=()=>{
     const blob=new Blob(chunks,{type:mime});
-    downloadBlob(blob,`gradient_${vw}x${vh}.${ext}`);
-    setStatus("Saglabāts "+ext.toUpperCase()+" video "+vw+"×"+vh+" ("+dur+" s).");
+    downloadBlob(blob,`gradient_${vw}x${vh}_60fps.${ext}`);
+    setStatus("Saglabāts "+ext.toUpperCase()+" video "+vw+"×"+vh+" 60fps ("+dur+" s).");
     state.animate=wasAnim;
     document.getElementById("btnVideo").disabled=false;
   };
+  const buf=Math.min(180,Math.round(160*vw/1080)+80);
   document.getElementById("btnVideo").disabled=true;
-  setStatus("Ieraksta "+ext.toUpperCase()+" video... "+dur+" s");
+  setStatus("Ieraksta "+ext.toUpperCase()+" video 60fps... "+dur+" s");
+  drawScene(cx,vw,vh,0,buf); // seed so motion blur starts from a full frame
   const t0=performance.now();
   rec.start();
-  const buf=Math.min(180,Math.round(160*vw/1080)+80);
   function frame(){
     const el=(performance.now()-t0)/1000;
-    drawScene(cx,vw,vh,el*state.speed,buf);
+    drawFrameMB(cx,vw,vh,el*state.speed,buf);
     if(el<dur) requestAnimationFrame(frame);
     else setTimeout(()=>rec.stop(),120);
   }
