@@ -236,12 +236,12 @@
       <div class="label"><span>Harmoniskie preseti</span><span id="presetIdx" class="sw-i">01 / 10</span></div>
       <div class="themes" id="themes"></div>
       <div class="presets" id="presets"></div>
-      <div class="swatches" id="swatches"></div>
       <div class="btn-row">
         <button class="btn" id="btnShuffle">Mainīt secību</button>
         <button class="btn" id="btnScatter">Nejauši izvietot</button>
         <button class="btn" id="btnReset">Atiestatīt</button>
       </div>
+      <div class="swatches" id="swatches"></div>
     </div>
 
     <!-- IMPORT -->
@@ -687,6 +687,21 @@ function drawFrameMB(ctx,W,H,t,buf){
 
 // ---------- Preview loop ----------
 let rafId=null, animT=0, lastTs=0, needDraw=true;
+// Position tween (used by "Nejauši izvietot" and "Atiestatīt")
+let scatter=null, scatterCount=0, scatterLast=0;
+function easeInOutCubic(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+function scatterTo(targets,dur){
+  scatter={starts:state.points.map(p=>({x:p.x,y:p.y})),targets,t0:performance.now(),dur};
+}
+function nextScatterDuration(){
+  const now=performance.now();
+  if(now-scatterLast>1500) scatterCount=0;   // cooldown restores the slow speed
+  scatterLast=now;
+  const n=scatterCount++;
+  if(n===0) return 1.5;
+  if(n===1) return 1.2;
+  return Math.max(0.3,1.2-(n-1)*0.1);         // then 0.1s faster each press, min 0.3s
+}
 
 function sizePreview(){
   const wrap=document.getElementById("cwrap");
@@ -714,6 +729,18 @@ function scheduleDraw(){needDraw=true;}
 function loop(ts){
   if(!lastTs)lastTs=ts;
   const dt=(ts-lastTs)/1000;lastTs=ts;
+  if(scatter){
+    let k=(ts-scatter.t0)/(scatter.dur*1000);
+    if(k>=1)k=1;
+    const e=easeInOutCubic(k), s=scatter.starts, g=scatter.targets;
+    const n=Math.min(state.points.length,s.length);
+    for(let i=0;i<n;i++){
+      state.points[i].x=s[i].x+(g[i].x-s[i].x)*e;
+      state.points[i].y=s[i].y+(g[i].y-s[i].y)*e;
+    }
+    needDraw=true;
+    if(k>=1) scatter=null;
+  }
   if(state.animate){animT+=dt*state.speed;needDraw=true;}
   if(needDraw){drawPreview();needDraw=false;}
   positionHandles();
@@ -738,7 +765,7 @@ function renderHandles(){
       p.y=Math.max(0,Math.min(1,(cy-r.top)/r.height));
       scheduleDraw();positionHandles();
     };
-    el.addEventListener("pointerdown",e=>{dragging=true;el.setPointerCapture(e.pointerId);e.preventDefault();});
+    el.addEventListener("pointerdown",e=>{dragging=true;scatter=null;el.setPointerCapture(e.pointerId);e.preventDefault();});
     el.addEventListener("pointermove",e=>{if(dragging)move(e.clientX,e.clientY);});
     el.addEventListener("pointerup",e=>{dragging=false;el.releasePointerCapture(e.pointerId);});
   });
@@ -869,6 +896,7 @@ document.getElementById("countSeg").addEventListener("click",e=>{
   b.classList.add("on");
   state.count=parseInt(b.dataset.n);
   state.presetIndex=0;
+  scatter=null;
   buildPoints(false);
   updatePresetLabel();
   renderPresets();renderSwatches();renderHandles();scheduleDraw();
@@ -883,11 +911,12 @@ document.getElementById("btnShuffle").addEventListener("click",()=>{
   renderSwatches();positionHandles();scheduleDraw();
 });
 document.getElementById("btnScatter").addEventListener("click",()=>{
-  state.points.forEach(p=>{p.x=.12+Math.random()*.76;p.y=.12+Math.random()*.76;p.phase=Math.random()*Math.PI*2;});
-  positionHandles();scheduleDraw();
+  const targets=state.points.map(()=>({x:.12+Math.random()*.76,y:.12+Math.random()*.76}));
+  scatterTo(targets,nextScatterDuration());
 });
 document.getElementById("btnReset").addEventListener("click",()=>{
-  buildPoints(true);renderHandles();scheduleDraw();
+  const targets=LAYOUTS[state.count].map(p=>({x:p[0],y:p[1]}));
+  scatterTo(targets,0.7);
 });
 
 // ---------- Image color extraction (median cut) ----------
