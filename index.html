@@ -2,7 +2,7 @@
 <html lang="lv">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -27,7 +27,8 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{
+  button{touch-action:manipulation}
+  body{touch-action:manipulation;
     background:var(--bg);
     color:var(--text);
     font-family:"Space Grotesk",system-ui,sans-serif;
@@ -113,6 +114,11 @@
   }
   .seg button:hover{border-color:var(--line-2);color:var(--text)}
   .seg button.on{background:var(--accent);color:#12101a;border-color:var(--accent)}
+  .mode-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:13px}
+  .mode-btn{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 0;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation}
+  .mode-btn:hover{border-color:var(--line-2);color:var(--text)}
+  .mode-btn.on{background:var(--accent);color:#12101a;border-color:var(--accent)}
+  .mode-btn svg{width:20px;height:20px}
   .presets{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
   .preset{
     height:34px;border-radius:9px;cursor:pointer;border:2px solid transparent;
@@ -201,10 +207,7 @@
   .reset-btn{font-family:inherit;font-size:10.5px;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:7px;padding:3px 9px;cursor:pointer;transition:all .12s;letter-spacing:.02em}
   .reset-btn:hover{border-color:var(--accent-dim);color:var(--text)}
   .fs-enter{
-    position:fixed;
-    top:calc(env(safe-area-inset-top,0px) + 14px);
-    right:calc(env(safe-area-inset-right,0px) + 14px);
-    z-index:900;
+    position:absolute;top:16px;right:16px;z-index:20;
     width:40px;height:40px;border-radius:11px;
     background:rgba(20,19,28,.6);border:1px solid var(--line-2);color:var(--text);
     cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
@@ -224,15 +227,16 @@
   .fs-exit:hover{background:rgba(255,255,255,.26)}
   .fs-bar{
     position:absolute;left:50%;transform:translateX(-50%);
-    bottom:calc(env(safe-area-inset-bottom,0px) + 30px);
-    display:flex;gap:14px;
+    bottom:calc(env(safe-area-inset-bottom,0px) + 26px);
+    display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+    max-width:calc(100% - 24px);
   }
   .fs-btn{
-    width:62px;height:62px;border-radius:50%;
+    width:54px;height:54px;border-radius:50%;
     background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
     color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
     backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    transition:transform .12s, background .12s;
+    transition:transform .12s, background .12s;touch-action:manipulation;
   }
   .fs-btn:hover{background:rgba(255,255,255,.24)}
   .fs-btn:active{transform:scale(.9)}
@@ -241,6 +245,7 @@
     .app{grid-template-columns:1fr;grid-template-rows:auto auto}
     .panel{border-left:none;border-top:1px solid var(--line)}
     .stage{padding:20px;min-height:52vh}
+    .fs-enter{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 12px);z-index:900}
   }
 </style>
 </head>
@@ -281,8 +286,8 @@
       <div class="presets" id="presets"></div>
       <div class="btn-row">
         <button class="btn" id="btnShuffle">Mainīt secību</button>
-        <button class="btn" id="btnScatter">Nejauši izvietot</button>
         <button class="btn" id="btnReset">Atiestatīt</button>
+        <button class="btn" id="btnScatter">Nejauši izvietot</button>
       </div>
       <div class="swatches" id="swatches"></div>
     </div>
@@ -311,17 +316,7 @@
         <span class="name" style="font-size:12.5px">Kustīgs priekšskatījums</span>
         <div class="switch" id="animSwitch"><b></b></div>
       </div>
-      <div class="sel-row">
-        <label>Efekts</label>
-        <select id="animMode">
-          <option value="float">Peldošs</option>
-          <option value="orbit">Rotācija</option>
-          <option value="pulse">Pulss</option>
-          <option value="wave">Vilnis</option>
-          <option value="drift">Plūsma</option>
-          <option value="swirl">Virpulis</option>
-        </select>
-      </div>
+      <div class="mode-grid" id="modeGrid"></div>
       <div class="slider">
         <div class="top"><span class="name">Ātrums</span><span class="val" id="speedVal">0.5×</span></div>
         <input type="range" id="speed" min="0" max="2" step="0.05" value="0.5">
@@ -373,6 +368,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
     </button>
     <button class="fs-btn" id="fsCount" title="Punktu skaits"></button>
+    <button class="fs-btn" id="fsPattern" title="Kustības pattern"></button>
     <button class="fs-btn" id="fsSpeed" title="Ātrums"></button>
   </div>
 </div>
@@ -395,12 +391,17 @@ const THEMES = {
     {c:["#FF512F","#DD2476","#FF6A88","#FF99AC","#C471ED","#FFB86C"]},{c:["#00DBDE","#FC00FF","#833AB4","#2575FC","#00C9FF","#43E97B"]},
     {c:["#43E97B","#38F9D7","#4FACFE","#667EEA","#764BA2","#F093FB"]},{c:["#F093FB","#F5576C","#FDBB2D","#43E97B","#30CFD0","#5B247A"]}
   ],
-  pastelis:[
-    {c:["#FFD1DC","#FFE5B4","#FFFACD","#D4F0F0","#E0BBE4","#C7CEEA"]},{c:["#FBE4E7","#E8DFF5","#D6E5FA","#D0F0EF","#FCF6E5","#F9D5E5"]},
-    {c:["#FFDEE9","#B5FFFC","#C9FFBF","#FBC7D4","#D9E7FF","#F5D0FE"]},{c:["#F9E2AE","#FAD4D4","#D6EFC7","#C7CEEA","#E2C2FF","#B5EAEA"]},
-    {c:["#FFCFDF","#FEFDCA","#E0F9B5","#A5DEE5","#CDB4DB","#FFDAC1"]},{c:["#F7D9C4","#FAF3DD","#C8D5B9","#8FC0A9","#68B0AB","#D6CFC7"]},
-    {c:["#FFE0AC","#FFACB7","#A0E7E5","#B4F8C8","#FBE7C6","#FFC9DE"]},{c:["#E4C1F9","#D0F4DE","#A9DEF9","#FCF6BD","#FF99C8","#C4FAF8"]},
-    {c:["#FFDAB9","#FFF0F5","#E6E6FA","#F0FFF0","#F5FFFA","#FADADD"]},{c:["#FEC8D8","#D291BC","#957DAD","#E0BBE4","#FFDFD3","#B0A8E0"]}
+  augli:[
+    {n:"Mango",     c:["#F48C06","#FFBA08","#FAE588","#D9ED92","#E85D04","#9D0208"]},
+    {n:"Arbūzs",    c:["#0B6E4F","#08A045","#FF4D6D","#FF8FA3","#FFD6E0","#2D6A4F"]},
+    {n:"Mellenes",  c:["#14213D","#22335C","#3F5091","#5A7DDB","#9BB8F0","#1B1035"]},
+    {n:"Kivi",      c:["#31572C","#4F772D","#90A955","#BFD200","#ECF39E","#132A13"]},
+    {n:"Vīnogas",   c:["#240046","#3C096C","#5A189A","#7B2CBF","#9D4EDD","#C77DFF"]},
+    {n:"Avenes",    c:["#590D22","#7A0C2E","#A4133C","#C9184A","#FF4D6D","#FF8FA3"]},
+    {n:"Citrons",   c:["#C9B200","#E9D700","#FFE94E","#FFF7AE","#A3B18A","#FDFFB6"]},
+    {n:"Persiks",   c:["#E76F51","#FF7F51","#FF9E6D","#FFB894","#FFD6BA","#FFE8D6"]},
+    {n:"Granātābols",c:["#6A040F","#9D0208","#D00000","#DC2F02","#E85D04","#F48C06"]},
+    {n:"Laims",     c:["#3A5A00","#5B8C00","#80B918","#AACC00","#D4E157","#EEF4D4"]}
   ],
   futuristisks:[
     {c:["#0F0C29","#302B63","#24243E","#00F5D4","#F15BB5","#9B5DE5"]},{c:["#FF00A0","#00F0FF","#7B2FFF","#0B0B2B","#12F7FF","#FEE440"]},
@@ -494,8 +495,8 @@ const THEMES = {
     {n:"Kanjons",    c:["#3A140A","#7A2E12","#B3541E","#D98C4A","#F0C088","#5C1F0E"]}
   ]
 };
-const THEME_ORDER=["spektrs","pastelis","futuristisks","pilsetas","daba","okeani","lukss","ziedi","kosmoss","kalni"];
-const THEME_NAMES={spektrs:"Spektrs",pastelis:"Pasteļi",futuristisks:"Futūristisks",pilsetas:"Pilsētas",daba:"Daba",okeani:"Okeāni",lukss:"Lukss",ziedi:"Ziedi",kosmoss:"Kosmoss",kalni:"Kalni"};
+const THEME_ORDER=["spektrs","augli","futuristisks","pilsetas","daba","okeani","lukss","ziedi","kosmoss","kalni"];
+const THEME_NAMES={spektrs:"Spektrs",augli:"Augļi",futuristisks:"Futūristisks",pilsetas:"Pilsētas",daba:"Daba",okeani:"Okeāni",lukss:"Lukss",ziedi:"Ziedi",kosmoss:"Kosmoss",kalni:"Kalni"};
 function currentPalette(){return THEMES[state.theme][state.presetIndex].c.slice(0,state.count);}
 function currentPresetName(){return THEMES[state.theme][state.presetIndex].n||null;}
 function updatePresetLabel(){
@@ -594,7 +595,7 @@ const preview=document.getElementById("preview");
 const pctx=preview.getContext("2d");
 const idw=document.createElement("canvas");
 const ictx=idw.getContext("2d");
-let noiseCanvas=null,noiseKey="";
+let noisePool=[],noiseKey="";
 
 function triWave(v){let f=((v%2)+2)%2;f=f>1?2-f:f;return 0.08+f*0.84;}
 function effPositions(t){
@@ -622,6 +623,20 @@ function effPositions(t){
           const r=Math.hypot(p.x-.5,p.y-.5), a=Math.atan2(p.y-.5,p.x-.5)+t*(.8-r*.9);
           const rr=r*(1+.15*Math.sin(t*1.3+p.phase));
           x=.5+rr*Math.cos(a); y=.5+rr*Math.sin(a); break;
+        }
+        case "zoom":{
+          const k=0.7+(0.5+0.5*Math.sin(t*1.2))*0.5;
+          x=.5+(p.x-.5)*k; y=.5+(p.y-.5)*k; break;
+        }
+        case "figure8":{
+          x=p.x+Math.sin(t*1.1+p.phase)*.12; y=p.y+Math.sin(2*(t*1.1+p.phase))*.08; break;
+        }
+        case "wobble":{
+          const s=0.6; // slower than a fast shimmer
+          const ampx=p.ax*2.2, ampy=p.ay*2.2;
+          x=p.x+(Math.sin(t*s*p.fx+p.phase)*0.5+Math.sin(t*s*1.7*p.fy+p.phase*2)*0.3+Math.sin(t*s*0.5+p.phase*3)*0.2)*ampx;
+          y=p.y+(Math.cos(t*s*p.fy+p.phase*1.3)*0.5+Math.cos(t*s*1.9*p.fx+p.phase*2.5)*0.3+Math.cos(t*s*0.6+p.phase*4)*0.2)*ampy;
+          break;
         }
         default:{ // float
           x=p.x+Math.sin(t*p.fx+p.phase)*p.ax; y=p.y+Math.cos(t*p.fy+p.phase)*p.ay;
@@ -670,16 +685,36 @@ function renderMesh(bw,bh,t){
       d[i]=r/ws; d[i+1]=g/ws; d[i+2]=b/ws; d[i+3]=255;
     }
   }
+  const fx=state.fx;
+  if(fx.brightness!==1||fx.contrast!==1||fx.saturate!==1||fx.hue!==0){
+    const br=fx.brightness, co=fx.contrast, sa=fx.saturate, h=fx.hue*Math.PI/180;
+    const cs=Math.cos(h), sn=Math.sin(h);
+    const m00=0.213+cs*0.787-sn*0.213, m01=0.715-cs*0.715-sn*0.715, m02=0.072-cs*0.072+sn*0.928;
+    const m10=0.213-cs*0.213+sn*0.143, m11=0.715+cs*0.285+sn*0.140, m12=0.072-cs*0.072-sn*0.283;
+    const m20=0.213-cs*0.213-sn*0.787, m21=0.715-cs*0.715+sn*0.715, m22=0.072+cs*0.928+sn*0.072;
+    const doHue=fx.hue!==0, doSat=sa!==1;
+    for(let i=0;i<d.length;i+=4){
+      let r=d[i], g=d[i+1], b=d[i+2];
+      r*=br; g*=br; b*=br;                                   // brightness
+      r=(r-128)*co+128; g=(g-128)*co+128; b=(b-128)*co+128;  // contrast
+      if(doSat){ const gray=0.299*r+0.587*g+0.114*b; r=gray+(r-gray)*sa; g=gray+(g-gray)*sa; b=gray+(b-gray)*sa; }
+      if(doHue){ const nr=r*m00+g*m01+b*m02, ng=r*m10+g*m11+b*m12, nb=r*m20+g*m21+b*m22; r=nr; g=ng; b=nb; }
+      d[i]=r<0?0:r>255?255:r; d[i+1]=g<0?0:g>255?255:g; d[i+2]=b<0?0:b>255?255:b;
+    }
+  }
   ictx.putImageData(img,0,0);
 }
 
-function getNoise(w,h){
-  const key=w+"x"+h;
-  if(noiseCanvas&&noiseKey===key) return noiseCanvas;
+function makeNoise(w,h){
   const c=document.createElement("canvas");c.width=w;c.height=h;
   const cx=c.getContext("2d");const im=cx.createImageData(w,h);const dd=im.data;
   for(let i=0;i<dd.length;i+=4){const v=Math.random()*255;dd[i]=dd[i+1]=dd[i+2]=v;dd[i+3]=255;}
-  cx.putImageData(im,0,0);noiseCanvas=c;noiseKey=key;return c;
+  cx.putImageData(im,0,0);return c;
+}
+function getNoiseFrame(w,h,idx){
+  const key=w+"x"+h;
+  if(noiseKey!==key){ noiseKey=key; noisePool=[]; for(let i=0;i<6;i++) noisePool.push(makeNoise(w,h)); }
+  return noisePool[((idx%6)+6)%6];
 }
 
 // ---------- Offscreen canvas pool ----------
@@ -691,14 +726,16 @@ function getOff(name,W,H){
   return c;
 }
 
-// Soft glow bleeding from bright areas.
+// Soft glow: downscale the scene and screen-blend it back (filter-free).
 function bloomPass(ctx,W,H,amt){
-  const snap=getOff("bloom",W,H);const sx=snap.getContext("2d");
-  sx.clearRect(0,0,W,H);sx.drawImage(ctx.canvas,0,0,W,H);
+  const sw=Math.max(2,Math.round(W/6)), sh=Math.max(2,Math.round(H/6));
+  const small=getOff("bloom",sw,sh);const sx=small.getContext("2d");
+  sx.imageSmoothingEnabled=true;sx.clearRect(0,0,sw,sh);
+  sx.drawImage(ctx.canvas,0,0,sw,sh);
   ctx.save();
-  ctx.globalCompositeOperation="screen";ctx.globalAlpha=amt*0.8;
-  ctx.filter=`blur(${10*(W/1080)}px) brightness(1.35)`;
-  ctx.drawImage(snap,0,0,W,H);
+  ctx.imageSmoothingEnabled=true;
+  ctx.globalCompositeOperation="screen";ctx.globalAlpha=Math.min(1,amt);
+  ctx.drawImage(small,0,0,W,H);
   ctx.restore();
 }
 
@@ -720,16 +757,22 @@ function drawScene(ctx,W,H,t,bufW){
   const fx=state.fx;
   renderMesh(bufW,Math.max(2,Math.round(bufW*H/W)),t);
 
-  // base = filtered gradient rendered into an offscreen buffer
+  // base = gradient (colour already adjusted in the buffer) into an offscreen
   const base=getOff("base",W,H);const bctx=base.getContext("2d");
   bctx.clearRect(0,0,W,H);
-  bctx.save();
   bctx.imageSmoothingEnabled=true;bctx.imageSmoothingQuality="high";
   const blurPx=fx.blur*(W/1080);
-  bctx.filter=`brightness(${fx.brightness}) contrast(${fx.contrast}) saturate(${fx.saturate}) hue-rotate(${fx.hue}deg) blur(${blurPx}px)`;
-  const o=Math.ceil(blurPx*2);
-  bctx.drawImage(idw,-o,-o,W+o*2,H+o*2);
-  bctx.restore();
+  if(blurPx>0.6){
+    // filter-free blur: shrink then upscale
+    const bf=Math.max(0.1,1-blurPx/26);
+    const tw=Math.max(2,Math.round(W*bf)), th=Math.max(2,Math.round(H*bf));
+    const tmp=getOff("blurtmp",tw,th);const tctx=tmp.getContext("2d");
+    tctx.imageSmoothingEnabled=true;tctx.clearRect(0,0,tw,th);
+    tctx.drawImage(idw,0,0,tw,th);
+    bctx.drawImage(tmp,0,0,W,H);
+  }else{
+    bctx.drawImage(idw,0,0,W,H);
+  }
 
   // colour temperature
   if(Math.abs(fx.temp)>0.001){
@@ -747,11 +790,12 @@ function drawScene(ctx,W,H,t,bufW){
   if(fx.bloom>0.001) bloomPass(ctx,W,H,fx.bloom);
   if(fx.posterize>0.001) posterizePass(ctx,W,H,fx.posterize);
 
-  // grain
+  // grain (animated: cycles through noise frames over time)
   if(fx.grain>0.001){
     const nw=Math.min(W,1400), nh=Math.round(nw*H/W);
+    const gi=Math.floor(Math.abs(t)*14);
     ctx.save();ctx.globalAlpha=fx.grain;ctx.globalCompositeOperation="overlay";
-    ctx.drawImage(getNoise(nw,nh),0,0,W,H);ctx.restore();
+    ctx.drawImage(getNoiseFrame(nw,nh,gi),0,0,W,H);ctx.restore();
   }
   // scanlines
   if(fx.scanline>0.001){
@@ -790,7 +834,16 @@ let rafId=null, animT=0, lastTs=0, needDraw=true;
 let scatter=null, scatterCount=0, scatterLast=0;
 function easeInOutCubic(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
 function scatterTo(targets,dur){
-  scatter={starts:state.points.map(p=>({x:p.x,y:p.y})),targets,t0:performance.now(),dur};
+  scatter={
+    starts:state.points.map(p=>({x:p.x,y:p.y,size:p.size,strength:p.strength})),
+    targets, t0:performance.now(), dur
+  };
+}
+function randomScatterTargets(){
+  return state.points.map(()=>({
+    x:.12+Math.random()*.76, y:.12+Math.random()*.76,
+    size:0.6+Math.random()*1.2, strength:0.6+Math.random()*1.2   // 0.6 .. 1.8
+  }));
 }
 function nextScatterDuration(){
   const now=performance.now();
@@ -838,11 +891,14 @@ function loop(ts){
     const e=easeInOutCubic(k), s=scatter.starts, g=scatter.targets;
     const n=Math.min(state.points.length,s.length);
     for(let i=0;i<n;i++){
-      state.points[i].x=s[i].x+(g[i].x-s[i].x)*e;
-      state.points[i].y=s[i].y+(g[i].y-s[i].y)*e;
+      const P=state.points[i], S=s[i], G=g[i];
+      P.x=S.x+(G.x-S.x)*e;
+      P.y=S.y+(G.y-S.y)*e;
+      if(G.size!=null)     P.size=S.size+(G.size-S.size)*e;
+      if(G.strength!=null) P.strength=S.strength+(G.strength-S.strength)*e;
     }
     needDraw=true;
-    if(k>=1) scatter=null;
+    if(k>=1){ scatter=null; renderSwatches(); }
   }
   if(fsActive && needleLineEl && Math.abs(needleTarget-needleCur)>0.05){
     needleCur+=(needleTarget-needleCur)*0.2; updateNeedle();
@@ -1042,11 +1098,10 @@ document.getElementById("btnShuffle").addEventListener("click",()=>{
   renderSwatches();positionHandles();scheduleDraw();
 });
 document.getElementById("btnScatter").addEventListener("click",()=>{
-  const targets=state.points.map(()=>({x:.12+Math.random()*.76,y:.12+Math.random()*.76}));
-  scatterTo(targets,nextScatterDuration());
+  scatterTo(randomScatterTargets(),nextScatterDuration());
 });
 document.getElementById("btnReset").addEventListener("click",()=>{
-  const targets=LAYOUTS[state.count].map(p=>({x:p[0],y:p[1]}));
+  const targets=LAYOUTS[state.count].map(p=>({x:p[0],y:p[1],size:1,strength:1}));
   scatterTo(targets,0.7);
 });
 
@@ -1120,11 +1175,6 @@ function handleFile(file){
 const animSwitch=document.getElementById("animSwitch");
 animSwitch.addEventListener("click",()=>{
   state.animate=!state.animate;animSwitch.classList.toggle("on",state.animate);scheduleDraw();
-});
-document.getElementById("animMode").addEventListener("change",e=>{
-  state.animMode=e.target.value;
-  if(!state.animate){state.animate=true;animSwitch.classList.add("on");}
-  scheduleDraw();
 });
 document.getElementById("speed").addEventListener("input",e=>{
   state.speed=parseFloat(e.target.value);document.getElementById("speedVal").textContent=state.speed.toFixed(2)+"×";
@@ -1293,6 +1343,35 @@ function renderFxPresets(){
 }
 document.getElementById("btnResetFx").addEventListener("click",()=>applyFx({}));
 
+// ---------- Motion patterns ----------
+const MODES=[
+  {key:"float",  name:"Peldošs",  icon:'<circle cx="7" cy="8" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1.8" fill="currentColor" stroke="none"/><circle cx="10" cy="16" r="1.8" fill="currentColor" stroke="none"/>'},
+  {key:"orbit",  name:"Rotācija", icon:'<circle cx="12" cy="12" r="7"/><circle cx="19" cy="12" r="2" fill="currentColor" stroke="none"/>'},
+  {key:"pulse",  name:"Pulss",    icon:'<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity="0.5"/>'},
+  {key:"wave",   name:"Vilnis",   icon:'<path d="M3 12q3-6 6 0t6 0 6 0"/>'},
+  {key:"drift",  name:"Plūsma",   icon:'<path d="M5 19L19 5"/><path d="M14 5h5v5"/>'},
+  {key:"swirl",  name:"Virpulis", icon:'<path d="M12 12a2 2 0 1 0 2 2 4 4 0 1 1-4-4 6 6 0 1 0 6 6"/>'},
+  {key:"zoom",   name:"Tuvinājums",icon:'<path d="M9 3H3v6"/><path d="M15 21h6v-6"/><path d="M3 3l6 6"/><path d="M21 21l-6-6"/>'},
+  {key:"figure8",name:"Astotnieks",icon:'<circle cx="8.5" cy="12" r="3.6"/><circle cx="15.5" cy="12" r="3.6"/>'},
+  {key:"wobble", name:"Šūpošanās",icon:'<circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="7" stroke-dasharray="3 3"/>'}
+];
+function renderModeButtons(){
+  const wrap=document.getElementById("modeGrid");if(!wrap)return;wrap.innerHTML="";
+  MODES.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="mode-btn"+(m.key===state.animMode?" on":"");
+    b.title=m.name; b.dataset.mode=m.key;
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+m.icon+'</svg>';
+    b.addEventListener("click",()=>{
+      state.animMode=m.key;
+      if(!state.animate){state.animate=true;document.getElementById("animSwitch").classList.add("on");}
+      renderModeButtons(); scheduleDraw();
+      if(typeof updateFsPatternIcon==="function") updateFsPatternIcon();
+    });
+    wrap.appendChild(b);
+  });
+}
+
 // ---------- Fullscreen mode ----------
 const fsEl=document.getElementById("fs");
 const fsCanvas=document.getElementById("fsCanvas");
@@ -1338,6 +1417,11 @@ function updateDominoIcon(){
     p.style.transform=on?"scale(1)":"scale(0.4)";
   });
 }
+function updateFsPatternIcon(){
+  const el=document.getElementById("fsPattern"); if(!el)return;
+  const m=MODES.find(x=>x.key===state.animMode)||MODES[0];
+  el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+m.icon+'</svg>';
+}
 function buildFsIcons(){
   document.getElementById("fsSpeed").innerHTML=
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
@@ -1356,7 +1440,7 @@ function buildFsIcons(){
     +'<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     +pips+'</svg>';
   setNeedleTarget(); needleCur=needleTarget; updateNeedle();
-  updateDominoIcon();
+  updateDominoIcon(); updateFsPatternIcon();
 }
 function enterFs(){
   fsActive=true; fsCtx=fsCanvas.getContext("2d");
@@ -1394,8 +1478,7 @@ document.getElementById("fsTheme").addEventListener("click",()=>{
 });
 // Random layout (animated scatter)
 document.getElementById("fsLayout").addEventListener("click",()=>{
-  const targets=state.points.map(()=>({x:.12+Math.random()*.76,y:.12+Math.random()*.76}));
-  scatterTo(targets,nextScatterDuration());
+  scatterTo(randomScatterTargets(),nextScatterDuration());
 });
 // Cycle motion speed (0 stops motion)
 document.getElementById("fsSpeed").addEventListener("click",()=>{
@@ -1412,11 +1495,18 @@ document.getElementById("fsCount").addEventListener("click",()=>{
   applyCount(state.count>=6?2:state.count+1);
   updateDominoIcon();
 });
+// Cycle motion pattern
+document.getElementById("fsPattern").addEventListener("click",()=>{
+  const i=MODES.findIndex(m=>m.key===state.animMode);
+  state.animMode=MODES[(i+1)%MODES.length].key;
+  if(!state.animate){state.animate=true;document.getElementById("animSwitch").classList.add("on");}
+  renderModeButtons(); updateFsPatternIcon(); needDraw=true;
+});
 
 // ---------- Init ----------
 function init(){
   buildPoints(false);
-  renderThemes();renderPresets();renderSwatches();renderEffects();renderFxPresets();renderHandles();
+  renderThemes();renderPresets();renderSwatches();renderEffects();renderFxPresets();renderModeButtons();renderHandles();
   updatePresetLabel();
   applyRes();
   sizePreview();
@@ -1426,6 +1516,8 @@ function init(){
   rafId=requestAnimationFrame(loop);
 }
 window.addEventListener("resize",sizePreview);
+["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
 init();
 </script>
 </body>
